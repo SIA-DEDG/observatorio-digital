@@ -1,0 +1,53 @@
+@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap');
+
+@theme {
+  --color-primary: #0E50A6;
+  --color-primary-100: #E3E8FE;
+  --color-primary-500: #0E50A6;
+
+  --color-secondary-100: #ECF0FE;
+  --color-secondary-500: #1661C3;
+
+  --color-grey-400: #73767B;
+  --color-grey-500: #515357;
+  --color-danger: #BD2830;
+
+  --color-bg: #F9F9F9;
+  --color-bg-100: #FFFFFF;
+
+  --font-sans: 'Montserrat', system-ui, sans-serif;
+}
+
+/* Em telas touch, entrega os gestos (pinça/arrasto) ao Leaflet em vez do navegador */
+.leaflet-container {
+  touch-action: none;
+}
+
+/* Tiles do OSM dessaturados e levemente escurecidos — fundo neutro para o mapa temático */
+.tiles-fundo-neutro {
+  filter: grayscale(0.85) brightness(0.85) contrast(0.95);
+}
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+    margin: 0;
+    border: 0;
+  }
+
+  body {
+    margin: 0;
+    background-color: var(--color-bg);
+  }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled),
+  a[href],
+  label[for],
+  select {
+    cursor: pointer;
+  }
+}
