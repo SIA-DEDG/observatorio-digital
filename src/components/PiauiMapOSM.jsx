@@ -300,17 +300,11 @@ export default function PiauiMapOSM({
 
         let conteudoTooltip
         if (mostrarMunicipio) {
-            const listaTop = (titulo, itens) =>
-                itens?.length
-                    ? `<div style="margin-top:4px"><strong>${titulo}</strong><br/>${itens.slice(0, 3).map((item) => `• ${item}`).join('<br/>')}</div>`
-                    : ''
             conteudoTooltip = `<div style="font-size:12px;line-height:1.5">
                 <strong>${nome}</strong><br/>
                 Território: ${territorio}<br/>
                 Exportado: ${formatarValor(registro?.exportado ?? 0)}<br/>
                 Importado: ${formatarValor(registro?.importado ?? 0)}
-                ${listaTop('Top exportados', registro?.topExportados)}
-                ${listaTop('Top importados', registro?.topImportados)}
             </div>`
         } else {
             const totais = totaisPorTerritorio[territorio]
