@@ -50,8 +50,8 @@ export default function FiltroBalanca({ periodo, grupo, produto }) {
                     value={produto.value}
                     onChange={produto.onChange}
                     helper={produto.modo === 'NCM'
-                        ? 'Família de 4 dígitos com ao menos um NCM classificado'
-                        : 'Código de 8 dígitos; filtra pela família SH4 correspondente'}
+                        ? 'Código de 8 dígitos; filtra pela família SH4 correspondente'
+                        : 'Família de 4 dígitos com ao menos um NCM classificado'}
                     multiple
                     selecaoUnica
                 />
