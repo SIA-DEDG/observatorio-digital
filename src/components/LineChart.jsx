@@ -79,26 +79,24 @@ function CityChart({ labels, city, height, period }) {
   };
 
   return (
-    <div className="w-full bg-white p-6">
-      <div className="flex items-start justify-between mb-4">
-        <div>
-          <h2 className="text-base font-semibold text-gray-800">
-            Histórico de Importação x Exportação
-          </h2>
-          <p className="text-sm text-gray-500">
-            {city.name} — {period}
-          </p>
-        </div>
+    <div className="flex w-full flex-col gap-3 bg-white p-6">
+      <div className="flex flex-col gap-1">
+        <h2 className="text-[18px] font-bold text-black">
+          Histórico de Importação x Exportação
+        </h2>
+        <p className="text-[14px] text-black">
+          Histórico de exportação e importação de {city.name} no período de {period}.
+        </p>
+      </div>
 
-        <div className="flex items-center gap-4 shrink-0">
-          <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: EXPORT_COLOR }} />
-            <span className="text-sm text-gray-600">Valor de Exportação</span>
-          </div>
-          <div className="flex items-center gap-1.5">
-            <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: IMPORT_COLOR }} />
-            <span className="text-sm text-gray-600">Valor de Importação</span>
-          </div>
+      <div className="flex flex-wrap items-center justify-end gap-[17px]">
+        <div className="flex items-center gap-2">
+          <span className="size-[10px] shrink-0 rounded-full" style={{ backgroundColor: EXPORT_COLOR }} />
+          <span className="text-[14px] text-black">Valor de Exportação</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="size-[10px] shrink-0 rounded-full" style={{ backgroundColor: IMPORT_COLOR }} />
+          <span className="text-[14px] text-black">Valor de Importação</span>
         </div>
       </div>
 

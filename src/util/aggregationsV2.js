@@ -6,19 +6,39 @@ import { territorioDoMunicipio } from './territoriosPI'
 const PAGINA = 1000
 const SUFIXO_UF = /\s*-\s*[A-Z]{2}$/
 
+/*
+ * O PostgREST devolve no máximo 1000 linhas por request, então as tabelas
+ * grandes vêm paginadas. A primeira página já traz o total (count=exact) e as
+ * demais saem todas juntas: em série eram ~37 idas e voltas de 400 ms
+ * esperando uma pela outra, ~9 s só de latência.
+ */
 async function buscarTudo(tabela, colunas) {
     if (!supabase) return []
-    const linhas = []
-    for (let inicio = 0; ; inicio += PAGINA) {
-        const { data, error } = await supabase.from(tabela).select(colunas).range(inicio, inicio + PAGINA - 1)
-        if (error) throw error
-        linhas.push(...data)
-        if (data.length < PAGINA) break
+
+    const { data, error, count } = await supabase
+        .from(tabela)
+        .select(colunas, { count: 'exact' })
+        .range(0, PAGINA - 1)
+    if (error) throw error
+    if (count == null || count <= PAGINA) return data
+
+    const respostas = await Promise.all(
+        Array.from({ length: Math.ceil(count / PAGINA) - 1 }, (_, indice) => {
+            const inicio = (indice + 1) * PAGINA
+            return supabase.from(tabela).select(colunas).range(inicio, inicio + PAGINA - 1)
+        }),
+    )
+
+    const linhas = [...data]
+    for (const resposta of respostas) {
+        if (resposta.error) throw resposta.error
+        linhas.push(...resposta.data)
     }
     return linhas
 }
 
-const CHAVE_CACHE_LOCAL = 'observatorio:geral_municipios:v4'
+// v5: o payload passou a levar o catálogo NCM junto dos registros
+const CHAVE_CACHE_LOCAL = 'observatorio:geral_municipios:v5'
 const VALIDADE_CACHE_MS = 60 * 60 * 1000
 
 let cacheEmMemoria = null
@@ -27,19 +47,34 @@ function lerCacheLocal() {
     try {
         const conteudoBruto = localStorage.getItem(CHAVE_CACHE_LOCAL)
         if (!conteudoBruto) return null
-        const { quando, registros } = JSON.parse(conteudoBruto)
+        const { quando, registros, ncms } = JSON.parse(conteudoBruto)
         if (Date.now() - quando > VALIDADE_CACHE_MS) return null
-        return registros
+        return { registros, ncms }
     } catch {
         return null
     }
 }
 
-function salvarCacheLocal(registros) {
+function salvarCacheLocal({ registros, ncms }) {
     try {
-        localStorage.setItem(CHAVE_CACHE_LOCAL, JSON.stringify({ quando: Date.now(), registros }))
+        localStorage.setItem(CHAVE_CACHE_LOCAL, JSON.stringify({ quando: Date.now(), registros, ncms }))
     } catch {
     }
+}
+
+/**
+ * Normaliza um NCM para 8 dígitos.
+ *
+ * Em `ncm_tic` o código vem pontuado (DDDD.DD.DD). A pontuação diz a posição de
+ * cada dígito, então um código pontuado incompleto ("8541.21") completa à
+ * DIREITA — 85412100. Já um código sem pontuação e curto é zero à esquerda
+ * perdido na importação numérica (1012100 → 01012100), e completa à esquerda.
+ */
+const normalizarNcm = (codigo) => {
+    const texto = String(codigo).trim()
+    const digitos = texto.replace(/\D/g, '')
+    if (digitos.length >= 8) return digitos.slice(0, 8)
+    return texto.includes('.') ? digitos.padEnd(8, '0') : digitos.padStart(8, '0')
 }
 
 function valorMaisFrequentePorSh4(linhas, extrairCodigo, extrairValor) {
@@ -47,7 +82,7 @@ function valorMaisFrequentePorSh4(linhas, extrairCodigo, extrairValor) {
     for (const linha of linhas) {
         const valor = extrairValor(linha)
         if (!valor) continue
-        const sh4 = String(extrairCodigo(linha)).replace(/\D/g, '').padStart(8, '0').slice(0, 4)
+        const sh4 = normalizarNcm(extrairCodigo(linha)).slice(0, 4)
         const porValor = contagem.get(sh4) ?? new Map()
         contagem.set(sh4, porValor)
         porValor.set(valor, (porValor.get(valor) ?? 0) + 1)
@@ -62,19 +97,54 @@ function valorMaisFrequentePorSh4(linhas, extrairCodigo, extrairValor) {
     return resultado
 }
 
-export async function carregarDatasetV2() {
+/** Devolve o NCM no formato de leitura da fonte: 85412100 → 8541.21.00 */
+export const formatarNcm = (ncm) => `${ncm.slice(0, 4)}.${ncm.slice(4, 6)}.${ncm.slice(6, 8)}`
+
+/** Reduz qualquer código ao SH4: 4 dígitos passam direto, NCM maior é truncado. */
+export const sh4DoCodigo = (codigo) => {
+    const digitos = String(codigo).replace(/\D/g, '')
+    return digitos.length <= 4 ? digitos.padStart(4, '0') : normalizarNcm(codigo).slice(0, 4)
+}
+
+/**
+ * Catálogo de NCMs classificados como TIC em `ncm_tic`, com a descrição oficial
+ * vinda de `geral_ncm`. Só entram códigos que têm grupo — é a lista "apenas com
+ * código NCM" usada pelo filtro de produto.
+ */
+function montarCatalogoNcm(ncmTic, ncmDescricoes) {
+    const descricaoPorNcm = new Map(
+        ncmDescricoes
+            .filter((linha) => linha.descricao_ncm)
+            .map((linha) => [normalizarNcm(linha.codigo_ncm), linha.descricao_ncm]),
+    )
+    const porCodigo = new Map()
+    for (const linha of ncmTic) {
+        if (!linha.grupo) continue
+        const ncm = normalizarNcm(linha.codigo_limpo)
+        if (porCodigo.has(ncm)) continue
+        porCodigo.set(ncm, {
+            ncm,
+            sh4: ncm.slice(0, 4),
+            grupo: linha.grupo,
+            descricao: descricaoPorNcm.get(ncm) ?? null,
+        })
+    }
+    return [...porCodigo.values()].sort((primeiro, segundo) => primeiro.ncm.localeCompare(segundo.ncm))
+}
+
+async function carregarTudo() {
     if (cacheEmMemoria) return cacheEmMemoria
 
-    const registrosDoCache = lerCacheLocal()
-    if (registrosDoCache) {
-        cacheEmMemoria = registrosDoCache
-        return registrosDoCache
+    const doCacheLocal = lerCacheLocal()
+    if (doCacheLocal) {
+        cacheEmMemoria = doCacheLocal
+        return doCacheLocal
     }
 
     const [registros, ncmTic, ncmSetores] = await Promise.all([
         buscarTudo('geral_municipios', 'fluxo,ano,mes,municipio,pais,bloco_economico,codigo_sh4,descricao_sh4,fob_usd,kg_liquido'),
         buscarTudo('ncm_tic', 'codigo_limpo,grupo'),
-        buscarTudo('geral_ncm', 'codigo_ncm,setor_economico'),
+        buscarTudo('geral_ncm', 'codigo_ncm,descricao_ncm,setor_economico'),
     ])
     const grupoPorSh4 = valorMaisFrequentePorSh4(ncmTic, (linha) => linha.codigo_limpo, (linha) => linha.grupo)
     const setorPorSh4 = valorMaisFrequentePorSh4(ncmSetores, (linha) => linha.codigo_ncm, (linha) => linha.setor_economico)
@@ -87,9 +157,19 @@ export async function carregarDatasetV2() {
             grupo: grupoPorSh4[sh4] ?? 'Outros',
         }
     })
-    cacheEmMemoria = registrosLimpos
-    salvarCacheLocal(registrosLimpos)
-    return registrosLimpos
+
+    cacheEmMemoria = { registros: registrosLimpos, ncms: montarCatalogoNcm(ncmTic, ncmSetores) }
+    salvarCacheLocal(cacheEmMemoria)
+    return cacheEmMemoria
+}
+
+export async function carregarDatasetV2() {
+    return (await carregarTudo()).registros
+}
+
+/** Catálogo NCM (só TIC), para o filtro de produto no modo NCM. */
+export async function carregarCatalogoNcm() {
+    return (await carregarTudo()).ncms
 }
 
 export const ehExportacao = (registro) => registro.fluxo === 'Exportacao'
@@ -99,6 +179,15 @@ export const setorDoRegistro = (registro) => registro.setor ?? 'Outros'
 export const grupoDoRegistro = (registro) => registro.grupo ?? 'Outros'
 
 export const FILTROS_INICIAIS_V2 = { fluxo: [], pais: [], setor: [], grupo: [], produtos: [], inicio: '', fim: '' }
+
+// Grupo dos produtos fora do Quadro 8 (FINES) — tudo que não é Economia Digital
+export const GRUPO_NAO_CLASSIFICADO = 'Outros'
+
+/** Um registro é do recorte TIC quando tem grupo do Quadro 8 (grupo <> 'Outros'). */
+export const ehEconomiaDigital = (registro) => grupoDoRegistro(registro) !== GRUPO_NAO_CLASSIFICADO
+
+/** Recorte TIC da base: usado por filtros, tabelas e gráficos de valores absolutos. */
+export const filtrarEconomiaDigital = (registros) => registros.filter(ehEconomiaDigital)
 
 const ROTULO_FLUXO = { Exportacao: 'Exportação', Importacao: 'Importação' }
 
@@ -110,14 +199,20 @@ export function opcoesFiltrosV2(registros) {
     const setorPorGrupo = new Map()
     const produtos = new Map()
     for (const registro of registros) {
+        // Fluxo, país e município existem na base inteira; produto/setor/grupo só
+        // entram nos seletores quando são de Economia Digital
         fluxos.add(registro.fluxo)
         paises.add(registro.pais)
         municipios.add(registro.municipio)
+        if (!ehEconomiaDigital(registro)) continue
         setores.add(setorDoRegistro(registro))
         if (!setorPorGrupo.has(grupoDoRegistro(registro))) setorPorGrupo.set(grupoDoRegistro(registro), setorDoRegistro(registro))
         if (!produtos.has(registro.codigo_sh4)) {
+            const descricao = registro.descricao_sh4 ?? String(registro.codigo_sh4)
             produtos.set(registro.codigo_sh4, {
-                label: registro.descricao_sh4 ?? registro.codigo_sh4,
+                label: descricao,
+                sh4: String(registro.codigo_sh4).padStart(4, '0'),
+                descricao,
                 setor: setorDoRegistro(registro),
                 grupo: grupoDoRegistro(registro),
             })
@@ -129,7 +224,9 @@ export function opcoesFiltrosV2(registros) {
         pais: ordenar(paises).map((valor) => ({ value: valor, label: valor })),
         municipio: ordenar(municipios).map((valor) => ({ value: valor, label: valor })),
         setor: ordenar(setores).map((valor) => ({ value: valor, label: valor })),
+        // Só os grupos do Quadro 8: o seletor nunca oferece soja, carne, combustível etc.
         grupo: [...setorPorGrupo.entries()]
+            .filter(([grupo]) => grupo !== GRUPO_NAO_CLASSIFICADO)
             .sort(([grupoA], [grupoB]) => grupoA.localeCompare(grupoB))
             .map(([grupo, setor]) => ({ value: grupo, label: grupo, setor })),
         produtos: [...produtos]
@@ -143,9 +240,54 @@ export function filtrarOpcoesProduto(opcoesProduto, setores, grupos) {
     return opcoesProduto.filter((opcao) => setores?.includes(opcao.setor) || grupos?.includes(opcao.grupo))
 }
 
+/**
+ * Opções do filtro "Produto" no modo SH4 — só Economia Digital (grupo <> 'Outros'),
+ * encadeadas ao "Grupo" escolhido.
+ * O rótulo "8541 — Diodos, transistores…" faz a busca achar por código ou nome.
+ */
+export function opcoesProdutoSh4(opcoesProduto, grupos) {
+    return opcoesProduto
+        .filter((opcao) => opcao.grupo !== GRUPO_NAO_CLASSIFICADO)
+        .filter((opcao) => !grupos?.length || grupos.includes(opcao.grupo))
+        .map((opcao) => ({ ...opcao, codigo: opcao.sh4, label: `${opcao.sh4} — ${opcao.descricao}` }))
+}
+
+/**
+ * Opções do filtro "Produto" no modo NCM: os códigos de 8 dígitos do Quadro 8,
+ * encadeados ao "Grupo". Só entram NCMs cujo SH4 aparece nas transações; o
+ * filtro casa pela família SH4 porque `geral_municipios` só tem esse nível.
+ */
+export function opcoesProdutoNcm(opcoesProduto, grupos, catalogoNcm) {
+    const descricaoPorSh4 = new Map(
+        opcoesProduto
+            .filter((opcao) => opcao.grupo !== GRUPO_NAO_CLASSIFICADO)
+            .map((opcao) => [opcao.sh4, opcao.descricao]),
+    )
+    return catalogoNcm
+        .filter((item) => item.grupo !== GRUPO_NAO_CLASSIFICADO && descricaoPorSh4.has(item.sh4))
+        .filter((item) => !grupos?.length || grupos.includes(item.grupo))
+        .map((item) => {
+            const descricao = item.descricao ?? descricaoPorSh4.get(item.sh4)
+            return {
+                value: item.ncm,
+                codigo: item.ncm,
+                sh4: item.sh4,
+                descricao,
+                grupo: item.grupo,
+                label: `${formatarNcm(item.ncm)} — ${descricao}`,
+                // Deixa a busca achar tanto "8541.21.00" quanto "85412100"
+                busca: item.ncm,
+            }
+        })
+}
+
 export function aplicarFiltrosV2(registros, filtros) {
     const inicio = filtros.inicio ? filtros.inicio.slice(0, 7) : null
     const fim = filtros.fim ? filtros.fim.slice(0, 7) : null
+    // As transações estão em SH4; um NCM selecionado casa pela sua família SH4
+    const sh4Selecionados = filtros.produtos.length
+        ? new Set(filtros.produtos.map(sh4DoCodigo))
+        : null
     return registros.filter((registro) => {
         if (filtros.fluxo.length && !filtros.fluxo.includes(registro.fluxo)) return false
         if (filtros.pais.length && !filtros.pais.includes(registro.pais)) return false
@@ -154,7 +296,7 @@ export function aplicarFiltrosV2(registros, filtros) {
             const casaGrupo = filtros.grupo?.includes(grupoDoRegistro(registro))
             if (!casaSetor && !casaGrupo) return false
         }
-        if (filtros.produtos.length && !filtros.produtos.includes(registro.codigo_sh4)) return false
+        if (sh4Selecionados && !sh4Selecionados.has(sh4DoCodigo(registro.codigo_sh4))) return false
         const competencia = anoMes(registro)
         if (inicio && competencia < inicio) return false
         if (fim && competencia > fim) return false
@@ -264,22 +406,83 @@ export function montarSetores(registrosDoEscopo, limiteProdutos = 15) {
     return [...setores.values()].sort((a, b) => b.total - a.total)
 }
 
-export function montarPaisesPorFluxo(registrosDoEscopo, limiteLinhas = 15) {
+/** Competência numérica ordenável (202403) a partir do ano/mês do registro. */
+const competenciaDoRegistro = (registro) => registro.ano * 100 + registro.mes
+
+const estenderFaixa = (faixa, competencia) => (faixa
+    ? { inicio: Math.min(faixa.inicio, competencia), fim: Math.max(faixa.fim, competencia) }
+    : { inicio: competencia, fim: competencia })
+
+const competenciaLegivel = (competencia) =>
+    `${String(competencia % 100).padStart(2, '0')}/${Math.floor(competencia / 100)}`
+
+const periodoLegivel = (faixa) => {
+    if (!faixa) return null
+    const inicio = competenciaLegivel(faixa.inicio)
+    const fim = competenciaLegivel(faixa.fim)
+    return inicio === fim ? inicio : `${inicio} – ${fim}`
+}
+
+/**
+ * Linhas da seção "Países": um registro por país × município × grupo temático ×
+ * produto, com valor e peso dos dois fluxos e a faixa de competências em que o
+ * fluxo daquela tabela aconteceu. `valor` guarda o fluxo da tabela — é por ele
+ * que o ranking e o "Top 5 países" se orientam.
+ *
+ * Devolve o recorte inteiro, sem teto de linhas: quando havia um (15), a tabela
+ * escondia 45 países atrás de 6 e o "Top 5" saía errado, porque o TopPaises
+ * soma justamente estas linhas — um país de muitas vendas pequenas não
+ * emplacava nenhuma linha no teto e sumia do ranking.
+ */
+export function montarPaisesPorFluxo(registrosDoEscopo) {
     const vazio = { exportacao: [], importacao: [] }
     if (registrosDoEscopo.length === 0) return vazio
 
-    const agrupar = (expressaoValor) =>
-        tabelaDe(linhasParaDataframe(registrosDoEscopo))
-            .groupby('pais', 'municipio', 'produto')
-            .rollup({ valor: expressaoValor })
-            .filter((d) => d.valor > 0)
-            .orderby(desc('valor'))
-            .slice(0, limiteLinhas)
-            .objects()
+    const porChave = new Map()
+    for (const registro of registrosDoEscopo) {
+        const grupo = grupoDoRegistro(registro)
+        const chave = `${registro.pais}|${registro.municipio}|${grupo}|${registro.codigo_sh4}`
+        const agregado = porChave.get(chave) ?? {
+            pais: registro.pais,
+            municipio: registro.municipio,
+            grupo,
+            produto: registro.descricao_sh4 ?? registro.codigo_sh4,
+            exportado: 0,
+            importado: 0,
+            kgExportado: 0,
+            kgImportado: 0,
+            faixaExportacao: null,
+            faixaImportacao: null,
+        }
+        porChave.set(chave, agregado)
+
+        const valor = Number(registro.fob_usd)
+        const peso = Number(registro.kg_liquido)
+        const competencia = competenciaDoRegistro(registro)
+        if (ehExportacao(registro)) {
+            agregado.exportado += valor
+            agregado.kgExportado += peso
+            agregado.faixaExportacao = estenderFaixa(agregado.faixaExportacao, competencia)
+        } else if (ehImportacao(registro)) {
+            agregado.importado += valor
+            agregado.kgImportado += peso
+            agregado.faixaImportacao = estenderFaixa(agregado.faixaImportacao, competencia)
+        }
+    }
+
+    const ranking = (chaveValor, chaveFaixa) =>
+        [...porChave.values()]
+            .filter((agregado) => agregado[chaveValor] > 0)
+            .sort((primeiro, segundo) => segundo[chaveValor] - primeiro[chaveValor])
+            .map(({ faixaExportacao, faixaImportacao, ...agregado }) => ({
+                ...agregado,
+                periodo: periodoLegivel(chaveFaixa === 'faixaExportacao' ? faixaExportacao : faixaImportacao),
+                valor: agregado[chaveValor],
+            }))
 
     return {
-        exportacao: agrupar((d) => op.sum(d.exportado)),
-        importacao: agrupar((d) => op.sum(d.importado)),
+        exportacao: ranking('exportado', 'faixaExportacao'),
+        importacao: ranking('importado', 'faixaImportacao'),
     }
 }
 

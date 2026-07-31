@@ -29,6 +29,16 @@
   filter: grayscale(0.85) brightness(0.85) contrast(0.95);
 }
 
+/* Quem rola é desenhado pelo BarraRolagem; a barra nativa sairia duplicada.
+   Vale para os dois eixos — o Figma não mostra nenhuma das duas dentro do card. */
+.rolagem-oculta {
+  scrollbar-width: none;
+}
+
+.rolagem-oculta::-webkit-scrollbar {
+  display: none;
+}
+
 @layer base {
   *,
   *::before,

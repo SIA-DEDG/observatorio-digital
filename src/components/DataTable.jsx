@@ -1,12 +1,24 @@
-import { useId, useMemo, useState } from 'react'
+import { useId, useMemo, useRef, useState } from 'react'
 import { ChevronDown, ChevronUp, ChevronsUpDown } from 'lucide-react'
-import { formatos, numero } from '../util/formats'
+import BarraRolagem from './BarraRolagem'
+import { formatos } from '../util/formats'
 
 function SortIcon({ estado }) {
     if (estado === 'asc') return <ChevronUp size={13} className="text-primary" />
     if (estado === 'desc') return <ChevronDown size={13} className="text-primary" />
     return <ChevronsUpDown size={13} className="text-grey-400" />
 }
+
+// Números ficam à direita e tabulares para os dígitos alinharem; o resto segue
+// o Figma, que centraliza as colunas de texto.
+const ALINHAMENTOS = {
+    left: { celula: 'text-left', conteudo: 'justify-start' },
+    center: { celula: 'text-center', conteudo: 'justify-center' },
+    right: { celula: 'text-right tabular-nums', conteudo: 'justify-end' },
+}
+
+// Sticky + border-collapse perde a borda: nas seções fixas as divisórias vêm de inset shadow
+const DIVISORIA_FIXA = 'shadow-[inset_-1px_0_0_#d9d9d9] last:shadow-none'
 
 export default function DataTable({
     colunas,
@@ -16,10 +28,12 @@ export default function DataTable({
     abertoInicial = true,
     altura = 'max-h-[420px]',
     vazio = 'Nenhum registro encontrado',
+    cabecalhoExtra = null,
 }) {
     const [ordem, setOrdem] = useState(null)
     const [aberto, setAberto] = useState(abertoInicial)
     const idConteudo = useId()
+    const refConteudo = useRef(null)
 
     const alinhamentoDe = (coluna, indice) => coluna.alinhamento ?? (indice === 0 ? 'left' : 'right')
 
@@ -59,117 +73,124 @@ export default function DataTable({
             return null
         })
 
+    const conteudoVisivel = !retratil || aberto
+
     return (
-        <div className="flex w-full flex-col overflow-hidden rounded-lg border border-[#cbcbcb] bg-white">
-            {titulo && (
-                <Cabecalho
-                    titulo={titulo}
-                    quantidade={linhas.length}
-                    retratil={retratil}
-                    aberto={aberto}
-                    idConteudo={idConteudo}
-                    onAlternar={() => setAberto((atual) => !atual)}
-                />
-            )}
+        <div className="flex w-full flex-col gap-[17px]">
+            <div className="flex w-full flex-col overflow-hidden rounded-[5px] border border-[#d9d9d9] bg-white">
+                {titulo && (
+                    <Cabecalho
+                        titulo={titulo}
+                        retratil={retratil}
+                        aberto={aberto}
+                        idConteudo={idConteudo}
+                        onAlternar={() => setAberto((atual) => !atual)}
+                    />
+                )}
 
-            {(!retratil || aberto) && (
-            <div id={idConteudo} className={`overflow-auto ${altura}`}>
-                <table className="w-full border-collapse text-[13px]">
-                    <thead className="sticky top-0 z-10 bg-[#0E50A6] text-white">
-                        <tr>
-                            {colunas.map((coluna, indice) => {
-                                const direita = alinhamentoDe(coluna, indice) === 'right'
-                                const estado = ordem?.chave === coluna.chave ? ordem.direcao : null
-                                return (
-                                    <th
-                                        key={coluna.chave}
-                                        scope="col"
-                                        aria-sort={estado ? (estado === 'asc' ? 'ascending' : 'descending') : 'none'}
-                                        className={`whitespace-nowrap px-3 py-2 font-medium ${direita ? 'text-right' : 'text-left'}`}
+                {conteudoVisivel && cabecalhoExtra}
+
+                {conteudoVisivel && (
+                    <div id={idConteudo} ref={refConteudo} className={`rolagem-oculta overflow-auto ${altura}`}>
+                        <table className="w-full border-collapse text-[14px]">
+                            <thead className="sticky top-0 z-10 bg-white text-black shadow-[inset_0_1px_0_#d9d9d9,inset_0_-1px_0_#d9d9d9]">
+                                <tr>
+                                    {colunas.map((coluna, indice) => {
+                                        const alinhamento = ALINHAMENTOS[alinhamentoDe(coluna, indice)]
+                                        const estado = ordem?.chave === coluna.chave ? ordem.direcao : null
+                                        return (
+                                            <th
+                                                key={coluna.chave}
+                                                scope="col"
+                                                aria-sort={estado ? (estado === 'asc' ? 'ascending' : 'descending') : 'none'}
+                                                className={`whitespace-nowrap px-3 py-2 font-light uppercase ${DIVISORIA_FIXA} ${alinhamento.celula}`}
+                                            >
+                                                <button
+                                                    type="button"
+                                                    onClick={() => alternarOrdem(coluna.chave)}
+                                                    className={`flex w-full items-center gap-1 transition-colors hover:text-primary ${alinhamento.conteudo}`}
+                                                >
+                                                    {coluna.label}
+                                                    <SortIcon estado={estado} />
+                                                </button>
+                                            </th>
+                                        )
+                                    })}
+                                </tr>
+                            </thead>
+
+                            <tbody>
+                                {linhasOrdenadas.length === 0 && (
+                                    <tr>
+                                        <td colSpan={colunas.length} className="px-3 py-8 text-center text-grey-400">
+                                            {vazio}
+                                        </td>
+                                    </tr>
+                                )}
+
+                                {linhasOrdenadas.map((linha, indiceLinha) => (
+                                    <tr
+                                        key={linha.id ?? indiceLinha}
+                                        className="border-b border-[#d9d9d9] bg-white transition-colors hover:bg-secondary-100"
                                     >
-                                        <button
-                                            type="button"
-                                            onClick={() => alternarOrdem(coluna.chave)}
-                                            className={`flex w-full items-center gap-1 transition-colors hover:text-secondary-100 ${direita ? 'justify-end' : 'justify-start'}`}
-                                        >
-                                            {coluna.label}
-                                            <SortIcon estado={estado} />
-                                        </button>
-                                    </th>
-                                )
-                            })}
-                        </tr>
-                    </thead>
+                                        {colunas.map((coluna, indice) => {
+                                            const formatar = coluna.formato ?? formatos.texto
+                                            return (
+                                                <td
+                                                    key={coluna.chave}
+                                                    className={`whitespace-nowrap border-r border-[#d9d9d9] px-3 py-2 text-black last:border-r-0 ${ALINHAMENTOS[alinhamentoDe(coluna, indice)].celula}`}
+                                                >
+                                                    {formatar(linha[coluna.chave], linha)}
+                                                </td>
+                                            )
+                                        })}
+                                    </tr>
+                                ))}
+                            </tbody>
 
-                    <tbody>
-                        {linhasOrdenadas.length === 0 && (
-                            <tr>
-                                <td colSpan={colunas.length} className="px-3 py-8 text-center text-grey-400">
-                                    {vazio}
-                                </td>
-                            </tr>
-                        )}
-
-                        {linhasOrdenadas.map((linha, indiceLinha) => (
-                            <tr
-                                key={linha.id ?? indiceLinha}
-                                className={`border-t border-[#eeeeee] transition-colors hover:bg-secondary-100 ${indiceLinha % 2 === 1 ? 'bg-[#F3F6FE]' : 'bg-white'}`}
-                            >
-                                {colunas.map((coluna, indice) => {
-                                    const formatar = coluna.formato ?? formatos.texto
-                                    return (
-                                        <td
-                                            key={coluna.chave}
-                                            className={`whitespace-nowrap px-3 py-2 text-[#232323] ${alinhamentoDe(coluna, indice) === 'right' ? 'text-right tabular-nums' : 'text-left'}`}
-                                        >
-                                            {formatar(linha[coluna.chave], linha)}
-                                        </td>
-                                    )
-                                })}
-                            </tr>
-                        ))}
-                    </tbody>
-
-                    {totais && linhasOrdenadas.length > 0 && (
-                        <tfoot className="sticky bottom-0 bg-white">
-                            <tr className="border-t border-[#cbcbcb] font-semibold text-[#232323]">
-                                {colunas.map((coluna, indice) => {
-                                    const formatar = coluna.formato ?? formatos.texto
-                                    return (
-                                        <td
-                                            key={coluna.chave}
-                                            className={`whitespace-nowrap px-3 py-2 ${alinhamentoDe(coluna, indice) === 'right' ? 'text-right tabular-nums' : 'text-left'}`}
-                                        >
-                                            {indice === 0 ? 'Total' : coluna.total ? formatar(totais[coluna.chave]) : ''}
-                                        </td>
-                                    )
-                                })}
-                            </tr>
-                        </tfoot>
-                    )}
-                </table>
+                            {totais && linhasOrdenadas.length > 0 && (
+                                <tfoot className="sticky bottom-0 bg-white shadow-[inset_0_1px_0_#d9d9d9]">
+                                    <tr className="font-medium text-black">
+                                        {colunas.map((coluna, indice) => {
+                                            const formatar = coluna.formato ?? formatos.texto
+                                            return (
+                                                <td
+                                                    key={coluna.chave}
+                                                    className={`whitespace-nowrap px-3 py-2 ${DIVISORIA_FIXA} ${ALINHAMENTOS[alinhamentoDe(coluna, indice)].celula}`}
+                                                >
+                                                    {indice === 0 ? 'Total' : coluna.total ? formatar(totais[coluna.chave]) : ''}
+                                                </td>
+                                            )
+                                        })}
+                                    </tr>
+                                </tfoot>
+                            )}
+                        </table>
+                    </div>
+                )}
             </div>
-            )}
+
+            {/* A barra fica fora do card, como no Figma; a nativa some pelo rolagem-oculta */}
+            {conteudoVisivel && <BarraRolagem alvoRef={refConteudo} />}
         </div>
     )
 }
 
-function Cabecalho({ titulo, quantidade, retratil, aberto, idConteudo, onAlternar }) {
+function Cabecalho({ titulo, retratil, aberto, idConteudo, onAlternar }) {
     const conteudo = (
         <>
+            <h3 className="truncate text-[16px] text-black">{titulo}</h3>
             {retratil && (
-                <ChevronDown
-                    size={16}
-                    className={`text-primary transition-transform duration-200 ${aberto ? '' : '-rotate-90'}`}
+                <ChevronUp
+                    size={18}
+                    className={`shrink-0 text-black transition-transform duration-200 ${aberto ? '' : 'rotate-180'}`}
                 />
             )}
-            <h3 className="text-[14px] font-semibold text-[#232323]">{titulo}</h3>
-            <span className="text-[12px] text-grey-400">({numero.format(quantidade)} registros)</span>
         </>
     )
 
     if (!retratil) {
-        return <div className="flex items-center gap-2 border-b border-[#eeeeee] px-4 py-3">{conteudo}</div>
+        return <div className="flex h-[37px] items-center bg-[#9ec8ff] px-[10px]">{conteudo}</div>
     }
 
     return (
@@ -178,7 +199,7 @@ function Cabecalho({ titulo, quantidade, retratil, aberto, idConteudo, onAlterna
             onClick={onAlternar}
             aria-expanded={aberto}
             aria-controls={idConteudo}
-            className={`flex w-full items-center gap-2 px-4 py-3 text-left transition-colors hover:bg-secondary-100/60 ${aberto ? 'border-b border-[#eeeeee]' : ''}`}
+            className="flex h-[37px] w-full items-center justify-between gap-2 bg-[#9ec8ff] px-[10px] text-left transition-colors hover:bg-[#8bbcf7]"
         >
             {conteudo}
         </button>

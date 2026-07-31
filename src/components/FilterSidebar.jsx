@@ -1,7 +1,7 @@
 import Dropdown from './Dropdown'
-import DropdownSetores from './DropdownSetores'
+import ToggleClassificacao from './ToggleClassificacao'
 import { CORES_TERRITORIO, territorioDoMunicipio } from '../util/territoriosPI'
-import { filtrarOpcoesProduto } from '../util/aggregationsV2'
+import { opcoesProdutoSh4, opcoesProdutoNcm } from '../util/aggregationsV2'
 
 const OPCOES_VAZIAS = { fluxo: [], pais: [], municipio: [], setor: [], grupo: [], produtos: [] }
 
@@ -12,6 +12,9 @@ export default function FilterSidebar({
     filters,
     onChange,
     options,
+    catalogoNcm = [],
+    classificacao = 'NCM',
+    onClassificacaoChange,
     territorios = [],
     onTerritoriosChange,
     municipios = [],
@@ -24,19 +27,17 @@ export default function FilterSidebar({
         ? (opcoes.municipio ?? []).filter((opcao) => territorios.includes(territorioDoMunicipio(opcao.value)))
         : opcoes.municipio ?? []
 
+    const grupos = filters.grupo ?? []
+    const opcoesProduto = classificacao === 'NCM'
+        ? opcoesProdutoNcm(opcoes.produtos ?? [], grupos, catalogoNcm)
+        : opcoesProdutoSh4(opcoes.produtos ?? [], grupos)
+
     return (
         <aside className="sticky top-4 flex h-fit w-[287px] shrink-0 flex-col gap-[18px] rounded-[10px] border border-[#d9d9d9] bg-white p-4">
+            <Dropdown variante="filtro" label="Fluxo" placeholder="Selecione" options={opcoes.fluxo ?? []} value={filters.fluxo} onChange={definirFiltro('fluxo')} multiple />
+            <Dropdown variante="filtro" label="País" placeholder="Selecione" options={opcoes.pais ?? []} value={filters.pais} onChange={definirFiltro('pais')} multiple />
             <Dropdown
-                label="Território"
-                placeholder="Todos"
-                options={OPCOES_TERRITORIO}
-                value={territorios}
-                onChange={(valores) => onTerritoriosChange?.(valores)}
-                helper="Selecione até 5 territórios"
-                multiple
-                max={5}
-            />
-            <Dropdown
+                variante="filtro"
                 label="Município"
                 placeholder="Selecione"
                 options={opcoesMunicipio}
@@ -46,46 +47,58 @@ export default function FilterSidebar({
                 multiple
                 max={5}
             />
-            <Dropdown label="Fluxo" placeholder="Todos" options={opcoes.fluxo ?? []} value={filters.fluxo} onChange={definirFiltro('fluxo')} multiple />
-            <Dropdown label="País" placeholder="Todos" options={opcoes.pais ?? []} value={filters.pais} onChange={definirFiltro('pais')} multiple />
-            <div className="flex flex-col gap-1">
-                <span className="text-[13px] text-grey-500">Período</span>
-                <div className="flex h-9 items-center gap-1 rounded-md border border-[#cbcbcb] bg-white px-3 text-[14px] focus-within:border-primary">
+            <div className="flex flex-col gap-2">
+                <span className="text-[18px] text-[#232323]">Período</span>
+                <div className="flex h-11 items-center gap-1 rounded-[8px] border border-[#d9d9d9] bg-white px-[10px] text-[14px] focus-within:border-primary">
                     <input
                         type="date"
+                        aria-label="Início do período"
                         value={filters.inicio}
                         onChange={(evento) => definirFiltro('inicio')(evento.target.value)}
                         className="min-w-0 flex-1 bg-transparent text-[#232323] outline-none"
                     />
-                    <span className="text-grey-400">-</span>
+                    <span className="text-grey-400">–</span>
                     <input
                         type="date"
+                        aria-label="Fim do período"
                         value={filters.fim}
                         onChange={(evento) => definirFiltro('fim')(evento.target.value)}
                         className="min-w-0 flex-1 bg-transparent text-[#232323] outline-none"
                     />
                 </div>
             </div>
-            <DropdownSetores
-                label="Setor"
-                placeholder="Todos"
-                opcoesSetor={opcoes.setor ?? []}
-                opcoesGrupo={opcoes.grupo ?? []}
-                setoresSelecionados={filters.setor}
-                gruposSelecionados={filters.grupo ?? []}
-                onSetoresChange={definirFiltro('setor')}
-                onGruposChange={definirFiltro('grupo')}
-                helper="Marque o setor inteiro ou expanda e escolha grupos"
+            <ToggleClassificacao value={classificacao} onChange={onClassificacaoChange} />
+            <Dropdown
+                variante="filtro"
+                label="Grupo"
+                placeholder="Selecione"
+                options={opcoes.grupo ?? []}
+                value={grupos}
+                onChange={(valores) => onChange({ ...filters, grupo: valores, produtos: [] })}
+                helper="Grupos temáticos de TIC"
+                multiple
             />
             <Dropdown
+                variante="filtro"
                 label="Produto"
-                placeholder="Todos"
-                options={filtrarOpcoesProduto(opcoes.produtos ?? [], filters.setor, filters.grupo)}
+                placeholder="Selecione"
+                options={opcoesProduto}
                 value={filters.produtos}
                 onChange={definirFiltro('produtos')}
-                helper={filters.setor.length > 0 || filters.grupo?.length > 0 ? 'Produtos da seleção de setor/grupo' : undefined}
+                helper={grupos.length > 0 ? `Somente os produtos de ${grupos.join(', ')}` : undefined}
                 multiple
                 selecaoUnica
+            />
+            <Dropdown
+                variante="filtro"
+                label="Território"
+                placeholder="Selecione"
+                options={OPCOES_TERRITORIO}
+                value={territorios}
+                onChange={(valores) => onTerritoriosChange?.(valores)}
+                helper="Selecione até 5 territórios"
+                multiple
+                max={5}
             />
         </aside>
     )

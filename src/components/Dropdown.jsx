@@ -1,9 +1,15 @@
 import { useEffect, useRef, useState } from 'react'
-import { ChevronDown, Check, Search } from 'lucide-react'
+import { ChevronDown, Check, Search, X } from 'lucide-react'
 
 const normalizar = (texto) => String(texto).toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '')
 
-export default function Dropdown({ label, placeholder = 'Selecione', options = [], value, onChange, helper, multiple = false, max, selecaoUnica = false }) {
+// 'padrao' é a barra de filtros do Detalhamento; 'filtro' é o painel lateral da Balança Comercial
+const VARIANTES = {
+    padrao: { rotulo: 'text-[13px] text-grey-500', campo: 'h-9 rounded-md border-[#cbcbcb] px-3 text-[14px]' },
+    filtro: { rotulo: 'text-[18px] text-[#232323]', campo: 'h-11 rounded-[8px] border-[#d9d9d9] px-[10px] text-[16px]' },
+}
+
+export default function Dropdown({ label, placeholder = 'Selecione', options = [], value, onChange, helper, multiple = false, max, selecaoUnica = false, variante = 'padrao' }) {
     const [open, setOpen] = useState(false)
     const [abrirParaCima, setAbrirParaCima] = useState(false)
     const [busca, setBusca] = useState('')
@@ -59,8 +65,9 @@ export default function Dropdown({ label, placeholder = 'Selecione', options = [
         }
     }
 
+    // `option.busca` leva formas alternativas do código (ex.: NCM sem pontuação)
     const opcoesVisiveis = busca
-        ? options.filter((option) => normalizar(option.label).includes(normalizar(busca)))
+        ? options.filter((option) => normalizar(`${option.label} ${option.busca ?? ''}`).includes(normalizar(busca)))
         : options
 
     const opcaoSelecionada = options.find((option) => option.value === value)
@@ -71,14 +78,16 @@ export default function Dropdown({ label, placeholder = 'Selecione', options = [
             : placeholder)
         : (opcaoSelecionada ? opcaoSelecionada.label : placeholder)
 
+    const estilo = VARIANTES[variante] ?? VARIANTES.padrao
+
     return (
         <div ref={containerRef} className="flex min-w-[150px] flex-1 flex-col gap-1">
-            <span className="text-[13px] text-grey-500">{label}</span>
+            <span className={estilo.rotulo}>{label}</span>
             <div className="relative">
                 <button
                     type="button"
                     onClick={alternarAberto}
-                    className="flex h-9 w-full items-center justify-between gap-2 rounded-md border border-[#cbcbcb] bg-white px-3 text-[14px] transition-colors hover:border-primary"
+                    className={`flex w-full items-center justify-between gap-2 border bg-white transition-colors hover:border-primary ${estilo.campo}`}
                 >
                     <span className={`truncate ${hasSelection ? 'text-[#232323]' : 'text-grey-400'}`}>
                         {buttonText}
@@ -101,6 +110,18 @@ export default function Dropdown({ label, placeholder = 'Selecione', options = [
                                 />
                             </div>
                         </li>
+                        {multiple && selected.length > 0 && (
+                            <li className="border-b border-[#eeeeee]">
+                                <button
+                                    type="button"
+                                    onClick={() => { onChange?.([]); setOpen(false) }}
+                                    className="flex w-full items-center gap-1.5 px-3 py-2 text-left text-[13px] text-danger transition-colors hover:bg-secondary-100"
+                                >
+                                    <X size={13} className="shrink-0" />
+                                    Limpar seleção ({selected.length})
+                                </button>
+                            </li>
+                        )}
                         {opcoesVisiveis.length === 0 ? (
                             <li className="px-3 py-2 text-[13px] text-grey-400">
                                 {busca ? 'Nenhuma opção encontrada' : 'Nenhuma opção disponível'}
