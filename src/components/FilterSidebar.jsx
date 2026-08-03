@@ -51,14 +51,14 @@ export default function FilterSidebar({
                 max={5}
             />
             <div className="flex flex-col gap-2">
-                <span className="text-[18px] text-[#232323]">Período</span>
-                <div className="flex h-11 items-center gap-1 rounded-[8px] border border-[#d9d9d9] bg-white px-[10px] text-[14px] focus-within:border-primary">
+                <span className="text-[18px] text-texto-1">Período</span>
+                <div className="flex h-11 items-center gap-1 rounded-[8px] border border-borda bg-superficie-1 px-[10px] text-[14px] focus-within:border-anel-foco">
                     <input
                         type="date"
                         aria-label="Início do período"
                         value={filters.inicio}
                         onChange={(evento) => definirFiltro('inicio')(evento.target.value)}
-                        className="min-w-0 flex-1 bg-transparent text-[#232323] outline-none"
+                        className="min-w-0 flex-1 bg-transparent text-texto-1 outline-none"
                     />
                     <span className="text-grey-400">–</span>
                     <input
@@ -66,7 +66,7 @@ export default function FilterSidebar({
                         aria-label="Fim do período"
                         value={filters.fim}
                         onChange={(evento) => definirFiltro('fim')(evento.target.value)}
-                        className="min-w-0 flex-1 bg-transparent text-[#232323] outline-none"
+                        className="min-w-0 flex-1 bg-transparent text-texto-1 outline-none"
                     />
                 </div>
             </div>

@@ -56,19 +56,19 @@ export default function PainelFiltros({ children, rotulo = 'Filtros', chips = []
                     aria-label={rotulo}
                     aria-expanded={aberto}
                     aria-controls={idPainel}
-                    className="relative flex size-11 shrink-0 items-center justify-center rounded-[10px] bg-primary text-white transition-colors hover:bg-primary/85"
+                    className="relative flex size-11 shrink-0 items-center justify-center rounded-[10px] bg-marca-fundo text-texto-sobre-marca transition-colors hover:bg-marca-fundo/85"
                 >
                     <Funnel size={20} />
                     {quantidadeAtiva > 0 && (
                         <span
                             aria-hidden="true"
-                            className="absolute -left-1.5 -top-1.5 flex min-w-[20px] items-center justify-center rounded-full bg-[#9ec8ff] px-1 text-[11px] font-bold text-[#05306a]"
+                            className="absolute -left-1.5 -top-1.5 flex min-w-[20px] items-center justify-center rounded-full bg-marca-realce px-1 text-[11px] font-bold text-marca-realce-texto"
                         >
                             {quantidadeAtiva}
                         </span>
                     )}
                 </button>
-                <span className="text-[16px] font-medium text-[#232323]">{rotulo}</span>
+                <span className="text-[16px] font-medium text-texto-1">{rotulo}</span>
             </div>
 
             {/*
@@ -90,21 +90,21 @@ export default function PainelFiltros({ children, rotulo = 'Filtros', chips = []
                 role={aberto ? 'dialog' : undefined}
                 aria-modal={aberto ? 'true' : undefined}
                 aria-label={rotulo}
-                className={`flex-col bg-white ${aberto
+                className={`flex-col bg-superficie-1 ${aberto
                     ? 'fixed inset-x-0 bottom-0 z-[1110] flex max-h-[90vh] rounded-t-[20px] shadow-xl md:inset-y-0 md:bottom-auto md:left-auto md:right-0 md:h-full md:max-h-none md:w-[400px] md:max-w-[85vw] md:rounded-none'
                     : 'hidden'
-                } lg:sticky lg:inset-auto lg:top-4 lg:z-auto lg:flex lg:h-fit lg:max-h-none lg:w-[287px] lg:shrink-0 lg:rounded-[10px] lg:border lg:border-[#d9d9d9] lg:p-4 lg:shadow-none`}
+                } lg:sticky lg:inset-auto lg:top-4 lg:z-auto lg:flex lg:h-fit lg:max-h-none lg:w-[287px] lg:shrink-0 lg:rounded-[10px] lg:border lg:border-borda lg:p-4 lg:shadow-none`}
             >
                 {/* Alça do bottom sheet — some quando vira gaveta lateral */}
-                <div className="mx-auto mt-3 h-1 w-10 shrink-0 rounded-full bg-[#d9d9d9] md:hidden" />
+                <div className="mx-auto mt-3 h-1 w-10 shrink-0 rounded-full bg-borda-forte md:hidden" />
 
                 <div className="flex shrink-0 items-center justify-between px-5 pb-1 pt-4 lg:hidden">
-                    <span className="text-[20px] font-semibold text-[#05306a]">{rotulo}</span>
+                    <span className="text-[20px] font-semibold text-marca-texto">{rotulo}</span>
                     <button
                         type="button"
                         onClick={() => setAberto(false)}
                         aria-label={`Fechar ${rotulo.toLowerCase()}`}
-                        className="flex size-8 items-center justify-center rounded-full bg-secondary-100 text-primary transition-colors hover:bg-[#9ec8ff]"
+                        className="flex size-8 items-center justify-center rounded-full bg-marca-suave text-marca-texto transition-colors hover:bg-marca-realce"
                     >
                         <X size={18} />
                     </button>
@@ -114,7 +114,7 @@ export default function PainelFiltros({ children, rotulo = 'Filtros', chips = []
                     {/* No desktop os chips ficam na barra "Filtros ativos", que aqui só mostra a contagem */}
                     {quantidadeAtiva > 0 && (
                         <div className="flex flex-col gap-2 lg:hidden">
-                            <span className="text-[14px] font-medium text-grey-500">Filtros ativos</span>
+                            <span className="text-[14px] font-medium text-texto-2">Filtros ativos</span>
                             <div className="flex flex-wrap gap-2">
                                 {chips.map((chip) => <ChipFiltro key={chip.chave} chip={chip} />)}
                             </div>
@@ -124,18 +124,18 @@ export default function PainelFiltros({ children, rotulo = 'Filtros', chips = []
                     {children}
                 </div>
 
-                <div className="flex shrink-0 gap-3 border-t border-[#d9d9d9] px-5 py-4 lg:hidden">
+                <div className="flex shrink-0 gap-3 border-t border-borda px-5 py-4 lg:hidden">
                     <button
                         type="button"
                         onClick={() => onLimpar?.()}
-                        className="flex-1 rounded-[10px] border border-primary px-4 py-3 text-[16px] font-medium text-primary transition-colors hover:bg-secondary-100"
+                        className="flex-1 rounded-[10px] border border-marca-texto px-4 py-3 text-[16px] font-medium text-marca-texto transition-colors hover:bg-marca-suave"
                     >
                         Limpar
                     </button>
                     <button
                         type="button"
                         onClick={() => setAberto(false)}
-                        className="flex-1 rounded-[10px] bg-primary px-4 py-3 text-[16px] font-medium text-white transition-colors hover:bg-primary/85"
+                        className="flex-1 rounded-[10px] bg-marca-fundo px-4 py-3 text-[16px] font-medium text-texto-sobre-marca transition-colors hover:bg-marca-fundo/85"
                     >
                         Aplicar filtros
                     </button>

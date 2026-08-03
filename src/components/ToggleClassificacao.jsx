@@ -7,7 +7,7 @@ const MODOS = ['NCM', 'SH4']
 export default function ToggleClassificacao({ label = 'Classificação', value, onChange }) {
     return (
         <div className="flex flex-col gap-[7px]">
-            <span className="text-[18px] text-[#232323]">{label}</span>
+            <span className="text-[18px] text-texto-1">{label}</span>
             <div className="flex w-full items-center" role="group" aria-label={label}>
                 {MODOS.map((modo, indice) => {
                     const ativo = value === modo
@@ -17,9 +17,9 @@ export default function ToggleClassificacao({ label = 'Classificação', value, 
                             type="button"
                             aria-pressed={ativo}
                             onClick={() => onChange?.(modo)}
-                            className={`flex h-[34px] flex-1 items-center justify-center border border-[#d9d9d9] px-4 text-[16px] transition-colors ${indice === 0 ? 'rounded-l-[8px]' : 'rounded-r-[8px] border-l-0'} ${ativo
-                                ? 'bg-primary font-medium text-white'
-                                : 'bg-white text-[#989898] hover:bg-secondary-100'}`}
+                            className={`flex h-[34px] flex-1 items-center justify-center border border-borda px-4 text-[16px] transition-colors ${indice === 0 ? 'rounded-l-[8px]' : 'rounded-r-[8px] border-l-0'} ${ativo
+                                ? 'bg-marca-fundo font-medium text-texto-sobre-marca'
+                                : 'bg-superficie-1 text-texto-3 hover:bg-marca-suave'}`}
                         >
                             {modo}
                         </button>

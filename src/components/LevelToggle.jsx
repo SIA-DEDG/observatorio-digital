@@ -10,7 +10,7 @@ export default function LevelToggle({ value, onChange, options = OPTIONS }) {
 
     return (
         <div
-            className="relative grid rounded-full bg-[#e8e8e8] p-1"
+            className="relative grid rounded-full bg-superficie-3 p-1"
             style={{ gridTemplateColumns: `repeat(${options.length}, minmax(0, 1fr))` }}
         >
             <span
@@ -29,7 +29,7 @@ export default function LevelToggle({ value, onChange, options = OPTIONS }) {
                         key={option.key}
                         type="button"
                         onClick={() => onChange(option.key)}
-                        className={`relative z-10 flex items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1 text-[12px] transition-colors duration-700 ${active ? 'font-medium text-white' : 'font-normal text-[#999999]'}`}
+                        className={`relative z-10 flex items-center justify-center gap-1.5 whitespace-nowrap rounded-full px-3 py-1 text-[12px] transition-colors duration-700 ${active ? 'font-medium text-texto-sobre-marca' : 'font-normal text-texto-3'}`}
                     >
                         {Icon && <Icon size={13} />}
                         {option.label}

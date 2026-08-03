@@ -4,9 +4,9 @@ import BarraRolagem from './BarraRolagem'
 import { formatos } from '../util/formats'
 
 function SortIcon({ estado }) {
-    if (estado === 'asc') return <ChevronUp size={13} className="text-primary" />
-    if (estado === 'desc') return <ChevronDown size={13} className="text-primary" />
-    return <ChevronsUpDown size={13} className="text-grey-400" />
+    if (estado === 'asc') return <ChevronUp size={13} className="text-marca-texto" />
+    if (estado === 'desc') return <ChevronDown size={13} className="text-marca-texto" />
+    return <ChevronsUpDown size={13} className="text-texto-3" />
 }
 
 // Números ficam à direita e tabulares para os dígitos alinharem; o resto segue
@@ -18,7 +18,7 @@ const ALINHAMENTOS = {
 }
 
 // Sticky + border-collapse perde a borda: nas seções fixas as divisórias vêm de inset shadow
-const DIVISORIA_FIXA = 'shadow-[inset_-1px_0_0_#d9d9d9] last:shadow-none'
+const DIVISORIA_FIXA = 'shadow-[inset_-1px_0_0_var(--borda)] last:shadow-none'
 
 export default function DataTable({
     colunas,
@@ -77,7 +77,7 @@ export default function DataTable({
 
     return (
         <div className="flex w-full flex-col gap-[17px]">
-            <div className="flex w-full flex-col overflow-hidden rounded-[5px] border border-[#d9d9d9] bg-white">
+            <div className="flex w-full flex-col overflow-hidden rounded-[5px] border border-borda bg-superficie-1">
                 {titulo && (
                     <Cabecalho
                         titulo={titulo}
@@ -93,7 +93,7 @@ export default function DataTable({
                 {conteudoVisivel && (
                     <div id={idConteudo} ref={refConteudo} className={`rolagem-oculta overflow-auto ${altura}`}>
                         <table className="w-full border-collapse text-[14px]">
-                            <thead className="sticky top-0 z-10 bg-white text-black shadow-[inset_0_1px_0_#d9d9d9,inset_0_-1px_0_#d9d9d9]">
+                            <thead className="sticky top-0 z-10 bg-superficie-1 text-texto-1 shadow-[inset_0_1px_0_var(--borda),inset_0_-1px_0_var(--borda)]">
                                 <tr>
                                     {colunas.map((coluna, indice) => {
                                         const alinhamento = ALINHAMENTOS[alinhamentoDe(coluna, indice)]
@@ -122,7 +122,7 @@ export default function DataTable({
                             <tbody>
                                 {linhasOrdenadas.length === 0 && (
                                     <tr>
-                                        <td colSpan={colunas.length} className="px-3 py-8 text-center text-grey-400">
+                                        <td colSpan={colunas.length} className="px-3 py-8 text-center text-texto-3">
                                             {vazio}
                                         </td>
                                     </tr>
@@ -131,14 +131,14 @@ export default function DataTable({
                                 {linhasOrdenadas.map((linha, indiceLinha) => (
                                     <tr
                                         key={linha.id ?? indiceLinha}
-                                        className="border-b border-[#d9d9d9] bg-white transition-colors hover:bg-secondary-100"
+                                        className="border-b border-borda bg-superficie-1 transition-colors hover:bg-marca-suave"
                                     >
                                         {colunas.map((coluna, indice) => {
                                             const formatar = coluna.formato ?? formatos.texto
                                             return (
                                                 <td
                                                     key={coluna.chave}
-                                                    className={`whitespace-nowrap border-r border-[#d9d9d9] px-3 py-2 text-black last:border-r-0 ${ALINHAMENTOS[alinhamentoDe(coluna, indice)].celula}`}
+                                                    className={`whitespace-nowrap border-r border-borda px-3 py-2 text-texto-1 last:border-r-0 ${ALINHAMENTOS[alinhamentoDe(coluna, indice)].celula}`}
                                                 >
                                                     {formatar(linha[coluna.chave], linha)}
                                                 </td>
@@ -149,8 +149,8 @@ export default function DataTable({
                             </tbody>
 
                             {totais && linhasOrdenadas.length > 0 && (
-                                <tfoot className="sticky bottom-0 bg-white shadow-[inset_0_1px_0_#d9d9d9]">
-                                    <tr className="font-medium text-black">
+                                <tfoot className="sticky bottom-0 bg-superficie-1 shadow-[inset_0_1px_0_var(--borda)]">
+                                    <tr className="font-medium text-texto-1">
                                         {colunas.map((coluna, indice) => {
                                             const formatar = coluna.formato ?? formatos.texto
                                             return (
@@ -179,18 +179,18 @@ export default function DataTable({
 function Cabecalho({ titulo, retratil, aberto, idConteudo, onAlternar }) {
     const conteudo = (
         <>
-            <h3 className="truncate text-[16px] text-black">{titulo}</h3>
+            <h3 className="truncate text-[16px] text-marca-realce-texto">{titulo}</h3>
             {retratil && (
                 <ChevronUp
                     size={18}
-                    className={`shrink-0 text-black transition-transform duration-200 ${aberto ? '' : 'rotate-180'}`}
+                    className={`shrink-0 text-marca-realce-texto transition-transform duration-200 ${aberto ? '' : 'rotate-180'}`}
                 />
             )}
         </>
     )
 
     if (!retratil) {
-        return <div className="flex h-[37px] items-center bg-[#9ec8ff] px-[10px]">{conteudo}</div>
+        return <div className="flex h-[37px] items-center bg-marca-realce px-[10px]">{conteudo}</div>
     }
 
     return (
@@ -199,7 +199,7 @@ function Cabecalho({ titulo, retratil, aberto, idConteudo, onAlternar }) {
             onClick={onAlternar}
             aria-expanded={aberto}
             aria-controls={idConteudo}
-            className="flex h-[37px] w-full items-center justify-between gap-2 bg-[#9ec8ff] px-[10px] text-left transition-colors hover:bg-[#8bbcf7]"
+            className="flex h-[37px] w-full items-center justify-between gap-2 bg-marca-realce px-[10px] text-left transition-colors hover:bg-marca-realce-hover"
         >
             {conteudo}
         </button>

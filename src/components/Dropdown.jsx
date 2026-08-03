@@ -5,8 +5,8 @@ const normalizar = (texto) => String(texto).toLowerCase().normalize('NFD').repla
 
 // 'padrao' é a barra de filtros do Detalhamento; 'filtro' é o painel lateral da Balança Comercial
 const VARIANTES = {
-    padrao: { rotulo: 'text-[13px] text-grey-500', campo: 'h-9 rounded-md border-[#cbcbcb] px-3 text-[14px]' },
-    filtro: { rotulo: 'text-[18px] text-[#232323]', campo: 'h-11 rounded-[8px] border-[#d9d9d9] px-[10px] text-[16px]' },
+    padrao: { rotulo: 'text-[13px] text-texto-2', campo: 'h-9 rounded-md border-borda-forte px-3 text-[14px]' },
+    filtro: { rotulo: 'text-[18px] text-texto-1', campo: 'h-11 rounded-[8px] border-borda px-[10px] text-[16px]' },
 }
 
 export default function Dropdown({ label, placeholder = 'Selecione', options = [], value, onChange, helper, multiple = false, max, selecaoUnica = false, variante = 'padrao' }) {
@@ -87,35 +87,35 @@ export default function Dropdown({ label, placeholder = 'Selecione', options = [
                 <button
                     type="button"
                     onClick={alternarAberto}
-                    className={`flex w-full items-center justify-between gap-2 border bg-white transition-colors hover:border-primary ${estilo.campo}`}
+                    className={`flex w-full items-center justify-between gap-2 border bg-superficie-1 transition-colors hover:border-marca-texto ${estilo.campo}`}
                 >
-                    <span className={`truncate ${hasSelection ? 'text-[#232323]' : 'text-grey-400'}`}>
+                    <span className={`truncate ${hasSelection ? 'text-texto-1' : 'text-texto-3'}`}>
                         {buttonText}
                     </span>
-                    <ChevronDown size={16} className={`shrink-0 text-grey-400 transition-transform ${open ? 'rotate-180' : ''}`} />
+                    <ChevronDown size={16} className={`shrink-0 text-texto-3 transition-transform ${open ? 'rotate-180' : ''}`} />
                 </button>
 
                 {open && (
-                    <ul className={`absolute z-30 max-h-60 w-full overflow-auto rounded-md border border-[#cbcbcb] bg-white py-1 shadow-lg ${abrirParaCima ? 'bottom-full mb-1' : 'mt-1'}`}>
-                        <li className="sticky top-0 z-10 border-b border-[#eeeeee] bg-white px-2 py-1.5">
-                            <div className="flex items-center gap-1.5 rounded-md border border-[#cbcbcb] px-2">
-                                <Search size={13} className="shrink-0 text-grey-400" />
+                    <ul className={`absolute z-30 max-h-60 w-full overflow-auto rounded-md border border-borda-forte bg-superficie-2 py-1 shadow-lg ${abrirParaCima ? 'bottom-full mb-1' : 'mt-1'}`}>
+                        <li className="sticky top-0 z-10 border-b border-borda-sutil bg-superficie-2 px-2 py-1.5">
+                            <div className="flex items-center gap-1.5 rounded-md border border-borda-forte px-2">
+                                <Search size={13} className="shrink-0 text-texto-3" />
                                 <input
                                     ref={buscaRef}
                                     type="text"
                                     value={busca}
                                     placeholder="Digite para buscar…"
                                     onChange={(event) => setBusca(event.target.value)}
-                                    className="h-7 w-full bg-transparent text-[13px] text-[#232323] outline-none"
+                                    className="h-7 w-full bg-transparent text-[13px] text-texto-1 outline-none"
                                 />
                             </div>
                         </li>
                         {multiple && selected.length > 0 && (
-                            <li className="border-b border-[#eeeeee]">
+                            <li className="border-b border-borda-sutil">
                                 <button
                                     type="button"
                                     onClick={() => { onChange?.([]); setOpen(false) }}
-                                    className="flex w-full items-center gap-1.5 px-3 py-2 text-left text-[13px] text-danger transition-colors hover:bg-secondary-100"
+                                    className="flex w-full items-center gap-1.5 px-3 py-2 text-left text-[13px] text-estado-erro transition-colors hover:bg-superficie-3"
                                 >
                                     <X size={13} className="shrink-0" />
                                     Limpar seleção ({selected.length})
@@ -123,7 +123,7 @@ export default function Dropdown({ label, placeholder = 'Selecione', options = [
                             </li>
                         )}
                         {opcoesVisiveis.length === 0 ? (
-                            <li className="px-3 py-2 text-[13px] text-grey-400">
+                            <li className="px-3 py-2 text-[13px] text-texto-3">
                                 {busca ? 'Nenhuma opção encontrada' : 'Nenhuma opção disponível'}
                             </li>
                         ) : (
@@ -136,7 +136,7 @@ export default function Dropdown({ label, placeholder = 'Selecione', options = [
                                             type="button"
                                             disabled={disabled}
                                             onClick={() => toggle(option)}
-                                            className={`flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-[14px] transition-colors hover:bg-secondary-100 ${checked ? 'bg-secondary-100 text-primary' : 'text-[#232323]'} ${disabled ? 'cursor-not-allowed opacity-40 hover:bg-transparent' : ''}`}
+                                            className={`flex w-full items-center justify-between gap-2 px-3 py-2 text-left text-[14px] transition-colors hover:bg-superficie-3 ${checked ? 'bg-marca-suave text-marca-texto' : 'text-texto-1'} ${disabled ? 'cursor-not-allowed opacity-40 hover:bg-transparent' : ''}`}
                                         >
                                             <span className="flex items-center gap-2">
                                                 {option.cor && (
@@ -144,7 +144,7 @@ export default function Dropdown({ label, placeholder = 'Selecione', options = [
                                                 )}
                                                 {option.label}
                                             </span>
-                                            {multiple && checked && <Check size={15} className="shrink-0 text-primary" />}
+                                            {multiple && checked && <Check size={15} className="shrink-0 text-marca-texto" />}
                                         </button>
                                     </li>
                                 )
@@ -153,7 +153,7 @@ export default function Dropdown({ label, placeholder = 'Selecione', options = [
                     </ul>
                 )}
             </div>
-            {helper && <span className="text-[11px] text-grey-400">{helper}</span>}
+            {helper && <span className="text-[11px] text-texto-3">{helper}</span>}
         </div>
     )
 }

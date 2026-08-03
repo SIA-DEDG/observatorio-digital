@@ -132,7 +132,7 @@ export default function BarraRolagem({ alvoRef }) {
                 onPointerMove={aoMoverNoTrilho}
                 className="relative min-w-0 flex-1 cursor-pointer touch-none py-[7px]"
             >
-                <div className="h-[5px] w-full rounded-full bg-[#b3b3b3]">
+                <div className="h-[5px] w-full rounded-full bg-borda-forte">
                     <div
                         className="h-full rounded-full bg-primary"
                         style={{ width: `${largura}%`, marginLeft: `${medida.posicao * (100 - largura)}%` }}
