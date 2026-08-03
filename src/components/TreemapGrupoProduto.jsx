@@ -379,19 +379,25 @@ export default function TreemapGrupoProduto({ blocos, nivel, caminho, grupos = [
                     </>
                 )}
 
-            <div className="flex flex-wrap items-center gap-1 text-[13px]">
+            {/*
+              * Em coluna estreita o rastro quebrava em duas linhas e deixava o
+              * chevron pendurado sozinho. Vira uma faixa rolável na horizontal —
+              * a hierarquia continua legível em uma linha só. De lg em diante
+              * sobra largura e ele volta a simplesmente quebrar.
+              */}
+            <div className="rolagem-oculta flex items-center gap-1 overflow-x-auto text-[13px] lg:flex-wrap lg:overflow-x-visible">
                 <button
                     type="button"
                     onClick={onLimparGrupo}
                     disabled={caminho.length === 0}
-                    className="rounded-full bg-[#e9e9e9] px-3 py-1 text-grey-500 transition-colors enabled:hover:bg-secondary-100 disabled:cursor-default"
+                    className="shrink-0 whitespace-nowrap rounded-full bg-[#e9e9e9] px-3 py-1 text-grey-500 transition-colors enabled:hover:bg-secondary-100 disabled:cursor-default"
                 >
                     Todos os grupos
                 </button>
                 {caminho.map((etapa) => (
-                    <span key={etapa} className="flex items-center gap-1">
-                        <ChevronRight size={14} className="text-grey-400" />
-                        <span className="rounded-full bg-secondary-100 px-3 py-1 text-[#232323]">{etapa}</span>
+                    <span key={etapa} className="flex shrink-0 items-center gap-1">
+                        <ChevronRight size={14} className="shrink-0 text-grey-400" />
+                        <span className="whitespace-nowrap rounded-full bg-secondary-100 px-3 py-1 text-[#232323]">{etapa}</span>
                     </span>
                 ))}
             </div>
