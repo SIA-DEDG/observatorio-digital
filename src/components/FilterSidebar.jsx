@@ -1,4 +1,5 @@
 import Dropdown from './Dropdown'
+import PainelFiltros from './PainelFiltros'
 import ToggleClassificacao from './ToggleClassificacao'
 import { CORES_TERRITORIO, territorioDoMunicipio } from '../util/territoriosPI'
 import { opcoesProdutoSh4, opcoesProdutoNcm } from '../util/aggregationsV2'
@@ -19,6 +20,8 @@ export default function FilterSidebar({
     onTerritoriosChange,
     municipios = [],
     onMunicipiosChange,
+    chips = [],
+    onLimpar,
 }) {
     const opcoes = options ?? OPCOES_VAZIAS
     const definirFiltro = (campo) => (valor) => onChange({ ...filters, [campo]: valor })
@@ -33,7 +36,7 @@ export default function FilterSidebar({
         : opcoesProdutoSh4(opcoes.produtos ?? [], grupos)
 
     return (
-        <aside className="sticky top-4 flex h-fit w-[287px] shrink-0 flex-col gap-[18px] rounded-[10px] border border-[#d9d9d9] bg-white p-4">
+        <PainelFiltros chips={chips} onLimpar={onLimpar}>
             <Dropdown variante="filtro" label="Fluxo" placeholder="Selecione" options={opcoes.fluxo ?? []} value={filters.fluxo} onChange={definirFiltro('fluxo')} multiple />
             <Dropdown variante="filtro" label="País" placeholder="Selecione" options={opcoes.pais ?? []} value={filters.pais} onChange={definirFiltro('pais')} multiple />
             <Dropdown
@@ -100,6 +103,6 @@ export default function FilterSidebar({
                 multiple
                 max={5}
             />
-        </aside>
+        </PainelFiltros>
     )
 }

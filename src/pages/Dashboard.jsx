@@ -213,6 +213,8 @@ function Dashboard() {
                         classificacao={classificacao}
                         onClassificacaoChange={(modo) => { setClassificacao(modo); setFiltros({ ...filtros, produtos: [] }) }}
                     />
+                        chips={chips}
+                        onLimpar={limparTudo}
 
                     <div className="sticky top-4 flex h-[calc(100vh-2rem)] min-h-[500px] flex-1 rounded-[10px] border border-[#d9d9d9] bg-white p-4">
                         <PiauiMapOSM

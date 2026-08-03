@@ -39,9 +39,9 @@ export default function BalancaComercialView({
             <BarraFiltrosAtivos chips={chips} onLimparTudo={onLimparTudo} />
 
             <div className="flex flex-col items-start gap-4 lg:flex-row">
-                <FiltroBalanca {...filtro} />
+                <FiltroBalanca {...filtro} chips={chips} onLimpar={onLimparTudo} />
 
-                <div className="flex w-full min-w-0 flex-1 flex-col gap-[25px] rounded-[10px] border border-[#d9d9d9] bg-white p-6">
+                <div className="flex w-full min-w-0 flex-1 flex-col gap-[25px] rounded-[10px] border border-[#d9d9d9] bg-white p-4 lg:p-6">
                     {vazio
                         ? <Carregando altura="h-[420px]" />
                         : (
