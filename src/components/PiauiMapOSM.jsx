@@ -120,6 +120,22 @@ export function ZoomPorPinca() {
     return null
 }
 
+/**
+ * O Leaflet só recalcula o tamanho quando a janela dispara `resize`, então
+ * mudar de breakpoint (a altura do container cai de 100vh para 420px) deixava
+ * metade dos tiles cinza até o primeiro arrasto. O observer cobre isso e também
+ * o caso do painel de filtros abrindo por cima.
+ */
+export function AjustarAoRedimensionar() {
+    const mapa = useMap()
+    useEffect(() => {
+        const observador = new ResizeObserver(() => mapa.invalidateSize())
+        observador.observe(mapa.getContainer())
+        return () => observador.disconnect()
+    }, [mapa])
+    return null
+}
+
 export function ControleDeEscala() {
     const mapa = useMap()
     useEffect(() => {
@@ -347,7 +363,7 @@ export default function PiauiMapOSM({
 
     return (
         <div className="flex h-full w-full flex-col gap-3">
-            <div className="relative min-h-[400px] w-full flex-1">
+            <div className="relative min-h-[260px] w-full flex-1 lg:min-h-[400px]">
                 <MapContainer
                     center={CENTRO_PIAUI}
                     zoom={ZOOM_INICIAL}
@@ -363,6 +379,7 @@ export default function PiauiMapOSM({
                     className="z-0 h-full w-full rounded-lg"
                 >
                     <FecharTooltipsAoMover />
+                    <AjustarAoRedimensionar />
                     <RastreadorDeCursor aoMoverCursor={setPosicaoCursor} />
                     <ControleDeEscala />
                     <ZoomPorPinca />
