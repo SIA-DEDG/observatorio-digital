@@ -71,11 +71,17 @@ export default function PainelFiltros({ children, rotulo = 'Filtros', chips = []
                 <span className="text-[16px] font-medium text-[#232323]">{rotulo}</span>
             </div>
 
+            {/*
+              * z acima de 1000 nos dois: é a faixa em que o Leaflet põe os controles
+              * do mapa (voltar ao Piauí, rosa dos ventos, leitura de coordenadas), e
+              * eles furavam a folha por cima. Como nenhum ancestral do mapa cria
+              * contexto de empilhamento, aqueles z-[1000] disputam direto com estes.
+              */}
             {aberto && (
                 <div
                     onClick={() => setAberto(false)}
                     aria-hidden="true"
-                    className="fixed inset-0 z-40 bg-black/40 lg:hidden"
+                    className="fixed inset-0 z-[1100] bg-black/40 lg:hidden"
                 />
             )}
 
@@ -85,7 +91,7 @@ export default function PainelFiltros({ children, rotulo = 'Filtros', chips = []
                 aria-modal={aberto ? 'true' : undefined}
                 aria-label={rotulo}
                 className={`flex-col bg-white ${aberto
-                    ? 'fixed inset-x-0 bottom-0 z-50 flex max-h-[90vh] rounded-t-[20px] shadow-xl md:inset-y-0 md:bottom-auto md:left-auto md:right-0 md:h-full md:max-h-none md:w-[400px] md:max-w-[85vw] md:rounded-none'
+                    ? 'fixed inset-x-0 bottom-0 z-[1110] flex max-h-[90vh] rounded-t-[20px] shadow-xl md:inset-y-0 md:bottom-auto md:left-auto md:right-0 md:h-full md:max-h-none md:w-[400px] md:max-w-[85vw] md:rounded-none'
                     : 'hidden'
                 } lg:sticky lg:inset-auto lg:top-4 lg:z-auto lg:flex lg:h-fit lg:max-h-none lg:w-[287px] lg:shrink-0 lg:rounded-[10px] lg:border lg:border-[#d9d9d9] lg:p-4 lg:shadow-none`}
             >
