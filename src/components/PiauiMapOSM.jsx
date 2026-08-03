@@ -3,8 +3,11 @@ import { LocateFixed } from 'lucide-react'
 import L from 'leaflet'
 import { MapContainer, TileLayer, GeoJSON, useMap, useMapEvents } from 'react-leaflet'
 import 'leaflet/dist/leaflet.css'
-import { CORES_TERRITORIO, TERRITORIOS, territorioDoMunicipio } from '../util/territoriosPI'
+import { TERRITORIOS, territorioDoMunicipio } from '../util/territoriosPI'
 import { normKey } from '../util/aggregations'
+import { useTema } from '../tema/useTema'
+import { usePaleta } from '../tema/paletas'
+import { afastar } from '../tema/cor'
 
 export const RENDERIZADOR_SVG = L.svg({ padding: 1 })
 
@@ -22,16 +25,6 @@ const LIMITES_NAVEGACAO = [
     [-12.5, -48.5],
     [-1.5, -37.5], 
 ]
-
-const COR_SEM_TERRITORIO = '#d1d5db'
-const COR_CONTORNO_ESTADO = '#6b7280'
-const COR_DIVISA_MUNICIPIOS = '#ffffff'
-const COR_DESTAQUE_HOVER = '#0e50a6'
-
-function escurecerCor(corHex, fator = 0.55) {
-    const canais = corHex.replace('#', '').match(/.{2}/g)
-    return `#${canais.map((canal) => Math.round(parseInt(canal, 16) * fator).toString(16).padStart(2, '0')).join('')}`
-}
 
 const formatadorDolar = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'USD', maximumFractionDigits: 0 })
 const formatarValor = (valor) => (valor == null ? '—' : formatadorDolar.format(valor))
@@ -148,10 +141,10 @@ export function ControleDeEscala() {
 
 export function RosaDosVentos() {
     return (
-        <svg width="38" height="48" viewBox="0 0 24 30" aria-label="Norte">
-            <text x="12" y="8" textAnchor="middle" fontSize="8" fontWeight="bold" fill="#232323">N</text>
-            <path d="M12 10 L7 27 L12 23 Z" fill="#232323" stroke="#232323" strokeWidth="0.75" strokeLinejoin="round" />
-            <path d="M12 10 L17 27 L12 23 Z" fill="#ffffff" stroke="#232323" strokeWidth="0.75" strokeLinejoin="round" />
+        <svg width="38" height="48" viewBox="0 0 24 30" aria-label="Norte" className="text-texto-1">
+            <text x="12" y="8" textAnchor="middle" fontSize="8" fontWeight="bold" fill="currentColor">N</text>
+            <path d="M12 10 L7 27 L12 23 Z" fill="currentColor" stroke="currentColor" strokeWidth="0.75" strokeLinejoin="round" />
+            <path d="M12 10 L17 27 L12 23 Z" fill="var(--superficie-1)" stroke="currentColor" strokeWidth="0.75" strokeLinejoin="round" />
         </svg>
     )
 }
@@ -180,6 +173,8 @@ export default function PiauiMapOSM({
     const [erroCarregamento, setErroCarregamento] = useState(null)
     const [posicaoCursor, setPosicaoCursor] = useState(null)
     const referenciaMapa = useRef(null)
+    const tema = useTema()
+    const { mapa: estiloMapa } = usePaleta()
 
     const municipiosSelecionados = useMemo(() => new Set(municipios.map(normKey)), [municipios])
     const territoriosSelecionados = useMemo(() => new Set(territorios), [territorios])
@@ -297,12 +292,14 @@ export default function PiauiMapOSM({
         const dentroDaSelecao = municipios.length > 0
             ? selecionado
             : territorios.length === 0 || territoriosSelecionados.has(territorio)
-        const corDoTerritorio = territorio ? CORES_TERRITORIO[territorio] : COR_SEM_TERRITORIO
+        const corDoTerritorio = territorio ? estiloMapa.territorios[territorio] : estiloMapa.semTerritorio
         return {
-            fillColor: selecionado ? escurecerCor(corDoTerritorio) : corDoTerritorio,
-            fillOpacity: selecionado ? 0.9 : dentroDaSelecao ? 0.75 : 0.2,
-            color: COR_DIVISA_MUNICIPIOS,
-            weight: 1,
+            fillColor: selecionado ? afastar(corDoTerritorio, estiloMapa.selecao) : corDoTerritorio,
+            fillOpacity: selecionado
+                ? estiloMapa.opacidadeSelecionado
+                : dentroDaSelecao ? estiloMapa.opacidadeDentro : estiloMapa.opacidadeFora,
+            color: estiloMapa.divisa,
+            weight: estiloMapa.pesoDivisa,
         }
     }
 
@@ -343,7 +340,7 @@ export default function PiauiMapOSM({
                     alternarTerritorio(territorio)
                 }
             },
-            mouseover: (evento) => evento.target.setStyle({ weight: 2, color: COR_DESTAQUE_HOVER }),
+            mouseover: (evento) => evento.target.setStyle({ weight: estiloMapa.pesoHover, color: estiloMapa.destaqueHover }),
             mouseout: (evento) => {
                 evento.target.setStyle(estiloDoMunicipio(feature))
                 evento.target.closeTooltip()
@@ -353,7 +350,7 @@ export default function PiauiMapOSM({
 
     if (erroCarregamento) {
         return (
-            <div className="flex h-[500px] w-full items-center justify-center rounded-lg bg-secondary-100 text-[13px] text-danger">
+            <div className="flex h-[500px] w-full items-center justify-center rounded-lg bg-marca-suave text-[13px] text-estado-erro">
                 Falha ao carregar dados do IBGE: {erroCarregamento}
             </div>
         )
@@ -383,14 +380,17 @@ export default function PiauiMapOSM({
                     <RastreadorDeCursor aoMoverCursor={setPosicaoCursor} />
                     <ControleDeEscala />
                     <ZoomPorPinca />
+                    {/* key força a troca da camada: className só se aplica na montagem */}
                     <TileLayer
-                        url="https://tile.openstreetmap.org/{z}/{x}/{y}.png"
-                        attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                        className="tiles-fundo-neutro"
+                        key={`tile-${tema}`}
+                        url={estiloMapa.tile.url}
+                        attribution={estiloMapa.tile.attribution}
+                        subdomains={estiloMapa.tile.subdomains}
+                        className={estiloMapa.tile.className}
                     />
                     {malhaMunicipios && Object.keys(nomePorCodigo).length > 0 && (
                         <GeoJSON
-                            key={`${territorios.join(',') || 'estado'}|${municipios.join(',')}`}
+                            key={`${tema}|${territorios.join(',') || 'estado'}|${municipios.join(',')}`}
                             data={malhaMunicipios}
                             style={estiloDoMunicipio}
                             onEachFeature={configurarMunicipio}
@@ -400,7 +400,8 @@ export default function PiauiMapOSM({
                         <GeoJSON
                             data={contornoEstado}
                             interactive={false}
-                            style={{ fill: false, color: COR_CONTORNO_ESTADO, weight: 2 }}
+                            key={`contorno-${tema}`}
+                            style={{ fill: false, color: estiloMapa.contornoEstado, weight: 2 }}
                         />
                     )}
                 </MapContainer>
@@ -414,13 +415,13 @@ export default function PiauiMapOSM({
                         onTerritoriosChange?.([])
                         referenciaMapa.current?.setView(CENTRO_PIAUI, ZOOM_INICIAL)
                     }}
-                    className="absolute bottom-8 right-3 z-[1000] flex h-9 w-9 items-center justify-center rounded-md border border-[#d9d9d9] bg-white text-[#232323] shadow-md transition-colors hover:bg-secondary-100"
+                    className="absolute bottom-8 right-3 z-[1000] flex h-9 w-9 items-center justify-center rounded-md border border-borda bg-superficie-1 text-texto-1 shadow-md transition-colors hover:bg-marca-suave"
                 >
                     <LocateFixed size={18} />
                 </button>
 
                 {posicaoCursor && (
-                    <div className="pointer-events-none absolute left-3 top-20 z-[1000] rounded-md border border-[#d9d9d9] bg-white/95 px-3 py-2 text-[12px] leading-relaxed text-[#232323] shadow-md">
+                    <div className="pointer-events-none absolute left-3 top-20 z-[1000] rounded-md border border-borda bg-superficie-1/95 px-3 py-2 text-[12px] leading-relaxed text-texto-1 shadow-md">
                         Lat: {posicaoCursor.lat.toFixed(5)}, Lon: {posicaoCursor.lng.toFixed(5)}<br />
                         E: {coordenadasUTM.este.toFixed(2)}, N: {coordenadasUTM.norte.toFixed(2)}<br />
                         Fuso: {coordenadasUTM.fuso}

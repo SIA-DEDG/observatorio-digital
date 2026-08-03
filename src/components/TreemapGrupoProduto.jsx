@@ -1,18 +1,11 @@
 import { useEffect, useRef, useState } from 'react'
 import { ChevronRight } from 'lucide-react'
 import { moedaCompacta } from '../util/formats'
+import { usePaleta } from '../tema/paletas'
+import { afastar } from '../tema/cor'
 
-/*
- * Paleta categórica validada (ordem fixa, nunca reciclada). São as mesmas oito
- * matizes de referência, porém com o croma reduzido em 20% e a luminosidade
- * resolvida para 5:1 contra o branco: aqui a cor é área cheia, não traço fino,
- * então o tom claro cansa a vista e ainda deixaria o rótulo ilegível — na
- * paleta anterior o texto branco chegava a 2,17:1 sobre o amarelo.
- * A ordem saiu de uma busca entre as 96 permutações que passam todos os gates.
- */
-const CORES = ['#b5512b', '#3770ba', '#a75575', '#2f7f2b', '#6965bd', '#be4844', '#0d7f58', '#9c6300']
-const COR_CAUDA = '#78716c'
-const LIMITE_BLOCOS = CORES.length
+// A paleta (a mesma nos dois temas) e a rampa vivem em tema/paletas.js
+const LIMITE_BLOCOS = 8
 
 // Proporção de referência usada para deixar os blocos quadrados; a saída vira %
 const LARGURA_BASE = 1067
@@ -94,52 +87,55 @@ const embaralhar = (nome) => {
     return acumulado
 }
 
-// Toda cor da paleta passa de 4,5:1 contra o branco, então o rótulo é sempre
-// branco — não há mais o tom claro que obrigava a virar para tinta escura.
-const TINTA = '#ffffff'
-
-const canaisDe = (hex) => [1, 3, 5].map((inicio) => parseInt(hex.slice(inicio, inicio + 2), 16))
-const paraHex = (canais) => `#${canais
-    .map((canal) => Math.max(0, Math.min(255, Math.round(canal))).toString(16).padStart(2, '0'))
-    .join('')}`
-
-/** Escurece a cor: 0 mantém, 1 vira preto. */
-const escurecer = (hex, fator) => paraHex(canaisDe(hex).map((canal) => canal * (1 - fator)))
-
 /**
  * A cor acompanha o grupo/produto, não a posição — filtrar não repinta quem
  * sobrou. Em caso de colisão, cai na próxima cor livre para nunca repetir na
  * mesma tela.
+ *
+ * Devolve também a tinta do rótulo: ela depende do nível, não só do tema. A
+ * regra é uma só — a rampa se afasta da superfície do card e a tinta é o polo
+ * oposto dela.
  */
-function atribuirCores(blocos, grupoAtual) {
+function atribuirCores(blocos, grupoAtual, tm) {
     // No nível de produto todos pertencem ao mesmo grupo: variam em tom, não em
     // matiz — é o que faz o setor ser legível de relance, como no Atlas.
     if (grupoAtual) {
-        const base = corCategorica(grupoAtual)
+        const base = corCategorica(grupoAtual, tm.cores)
         const ordem = new Map(blocos.map((bloco, indice) => [bloco.nome, indice]))
         const maximo = Math.max(blocos.length - 1, 1)
-        // Maior saldo no tom mais claro, descendo até o mais escuro. A rampa é
-        // curta porque a base já é funda: 55% daqui chegava perto do preto.
-        return (bloco) => (bloco.cauda
-            ? COR_CAUDA
-            : escurecer(base, ((ordem.get(bloco.nome) ?? 0) / maximo) * 0.38))
+        const { direcao, inicio, fim } = tm.rampa
+        /*
+         * No claro: maior saldo no tom mais claro, descendo até o mais escuro; a
+         * rampa é curta porque a base já é funda (55% daqui chegava perto do
+         * preto). No escuro a direção inverte — escurecer levaria a ponta abaixo
+         * de 3:1 contra o card.
+         */
+        return {
+            corDe: (bloco) => (bloco.cauda
+                ? tm.caudaRampa
+                : afastar(base, { direcao, fator: inicio + ((ordem.get(bloco.nome) ?? 0) / maximo) * (fim - inicio) })),
+            tinta: tm.tintaRampa,
+        }
     }
 
     const usadas = new Set()
     const porNome = new Map()
     const nomes = blocos.filter((bloco) => !bloco.cauda).map((bloco) => bloco.nome).sort()
     for (const nome of nomes) {
-        let indice = embaralhar(nome) % CORES.length
-        for (let tentativa = 0; tentativa < CORES.length && usadas.has(indice); tentativa += 1) {
-            indice = (indice + 1) % CORES.length
+        let indice = embaralhar(nome) % tm.cores.length
+        for (let tentativa = 0; tentativa < tm.cores.length && usadas.has(indice); tentativa += 1) {
+            indice = (indice + 1) % tm.cores.length
         }
         usadas.add(indice)
-        porNome.set(nome, CORES[indice])
+        porNome.set(nome, tm.cores[indice])
     }
-    return (bloco) => (bloco.cauda ? COR_CAUDA : porNome.get(bloco.nome) ?? COR_CAUDA)
+    return {
+        corDe: (bloco) => (bloco.cauda ? tm.caudaCategorica : porNome.get(bloco.nome) ?? tm.caudaCategorica),
+        tinta: tm.tintaCategorica,
+    }
 }
 
-const corCategorica = (nome) => CORES[embaralhar(nome) % CORES.length]
+const corCategorica = (nome, cores) => cores[embaralhar(nome) % cores.length]
 
 const piorProporcao = (areas, soma, lado) => {
     if (soma <= 0) return Infinity
@@ -235,23 +231,23 @@ function Dica({ bloco, x, y, cor, limite }) {
 
     return (
         <div
-            className="pointer-events-none absolute z-30 rounded-[8px] border border-[#d9d9d9] bg-white shadow-lg"
+            className="pointer-events-none absolute z-30 rounded-[8px] border border-borda bg-superficie-3 shadow-lg"
             style={{ left: esquerda, top: topo, width: LARGURA_DICA }}
         >
-            <div className="flex items-center gap-2 border-b border-[#eeeeee] px-3 py-2">
+            <div className="flex items-center gap-2 border-b border-borda-sutil px-3 py-2">
                 <span className="size-[10px] shrink-0 rounded-sm" style={{ backgroundColor: cor }} />
-                <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-[#101828]" title={bloco.nome}>
+                <span className="min-w-0 flex-1 truncate text-[13px] font-semibold text-texto-1" title={bloco.nome}>
                     {bloco.nome}
                 </span>
                 {bloco.codigo && (
-                    <span className="shrink-0 text-[11px] text-grey-400">{bloco.codigo}</span>
+                    <span className="shrink-0 text-[11px] text-texto-3">{bloco.codigo}</span>
                 )}
             </div>
             <dl className="flex flex-col gap-1 px-3 py-2">
                 {linhas.map(([rotulo, valor]) => (
                     <div key={rotulo} className="flex items-baseline justify-between gap-3 text-[12px]">
-                        <dt className="text-grey-500">{rotulo}</dt>
-                        <dd className="tabular-nums font-medium text-[#101828]">{valor}</dd>
+                        <dt className="text-texto-2">{rotulo}</dt>
+                        <dd className="tabular-nums font-medium text-texto-1">{valor}</dd>
                     </div>
                 ))}
             </dl>
@@ -260,11 +256,12 @@ function Dica({ bloco, x, y, cor, limite }) {
 }
 
 export default function TreemapGrupoProduto({ blocos, nivel, caminho, grupos = [], onSelecionarGrupo, onLimparGrupo }) {
+    const { treemap } = usePaleta()
     const visiveis = agruparCauda(blocos)
     const retangulos = calcularRetangulos(visiveis)
     const porProduto = nivel === 'produto'
     // Um grupo só define a rampa de tons; com vários, volta para cores categóricas
-    const corDe = atribuirCores(visiveis, porProduto && grupos.length === 1 ? grupos[0] : null)
+    const { corDe, tinta } = atribuirCores(visiveis, porProduto && grupos.length === 1 ? grupos[0] : null, treemap)
     const nomeGrupos = grupos.join(', ')
     const [referenciaMapa, dimensoes] = useDimensoes()
     const [dica, setDica] = useState(null)
@@ -278,10 +275,10 @@ export default function TreemapGrupoProduto({ blocos, nivel, caminho, grupos = [
     return (
         <section className="flex w-full flex-col gap-3">
             <div className="flex flex-col gap-1">
-                <h2 className="text-[20px] font-bold text-black">
+                <h2 className="text-[20px] font-bold text-texto-1">
                     {porProduto ? nomeGrupos : 'Grupos'}
                 </h2>
-                <p className="text-[16px] text-black">
+                <p className="text-[16px] text-texto-1">
                     {porProduto
                         ? `Saldo comercial por produto (SH4) dentro de ${nomeGrupos}`
                         : 'Saldo comercial por grupo temático'} — a área de cada bloco é o tamanho do saldo.
@@ -289,13 +286,13 @@ export default function TreemapGrupoProduto({ blocos, nivel, caminho, grupos = [
             </div>
 
             {retangulos.length === 0
-                ? <p className="py-10 text-center text-[14px] text-grey-400">Sem saldo para a seleção atual.</p>
+                ? <p className="py-10 text-center text-[14px] text-texto-3">Sem saldo para a seleção atual.</p>
                 : (
                     <>
                         <div
                             ref={referenciaMapa}
                             onMouseLeave={() => setDica(null)}
-                            className="relative h-[360px] w-full overflow-hidden rounded-[10px] bg-white"
+                            className="relative h-[360px] w-full overflow-hidden rounded-[10px] bg-superficie-1"
                         >
                             {retangulos.map(({ bloco, x, y, largura, altura }) => {
                                 const porcentagem = `${percentual.format(bloco.percentual)}%`
@@ -320,7 +317,7 @@ export default function TreemapGrupoProduto({ blocos, nivel, caminho, grupos = [
                                             width: `calc(${largura}% - 2px)`,
                                             height: `calc(${altura}% - 2px)`,
                                             backgroundColor: fundo,
-                                            color: TINTA,
+                                            color: tinta,
                                             padding: faixa ? `${faixa.recuo}px` : 0,
                                         }}
                                     >
@@ -369,8 +366,8 @@ export default function TreemapGrupoProduto({ blocos, nivel, caminho, grupos = [
                             {retangulos.map(({ bloco }) => (
                                 <li key={bloco.nome} className="flex items-center gap-2 text-[13px]">
                                     <span className="size-[10px] shrink-0 rounded-sm" style={{ backgroundColor: corDe(bloco) }} />
-                                    <span className="truncate text-[#232323]" title={bloco.nome}>{bloco.nome}</span>
-                                    <span className="ml-auto shrink-0 tabular-nums text-grey-500">
+                                    <span className="truncate text-texto-1" title={bloco.nome}>{bloco.nome}</span>
+                                    <span className="ml-auto shrink-0 tabular-nums text-texto-2">
                                         {moedaCompacta.format(bloco.saldo)} · {percentual.format(bloco.percentual)}%
                                     </span>
                                 </li>
@@ -390,14 +387,14 @@ export default function TreemapGrupoProduto({ blocos, nivel, caminho, grupos = [
                     type="button"
                     onClick={onLimparGrupo}
                     disabled={caminho.length === 0}
-                    className="shrink-0 whitespace-nowrap rounded-full bg-[#e9e9e9] px-3 py-1 text-grey-500 transition-colors enabled:hover:bg-secondary-100 disabled:cursor-default"
+                    className="shrink-0 whitespace-nowrap rounded-full bg-superficie-3 px-3 py-1 text-texto-2 transition-colors enabled:hover:bg-marca-suave disabled:cursor-default"
                 >
                     Todos os grupos
                 </button>
                 {caminho.map((etapa) => (
                     <span key={etapa} className="flex shrink-0 items-center gap-1">
-                        <ChevronRight size={14} className="shrink-0 text-grey-400" />
-                        <span className="whitespace-nowrap rounded-full bg-secondary-100 px-3 py-1 text-[#232323]">{etapa}</span>
+                        <ChevronRight size={14} className="shrink-0 text-texto-3" />
+                        <span className="whitespace-nowrap rounded-full bg-marca-suave px-3 py-1 text-texto-1">{etapa}</span>
                     </span>
                 ))}
             </div>
