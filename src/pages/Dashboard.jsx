@@ -11,6 +11,7 @@ import ChartLine from '../components/LineChart'
 import Carregando from '../components/Carregando'
 import BalancaComercial from '../components/BalancaComercial'
 import BarraFiltrosAtivos from '../components/BarraFiltrosAtivos'
+import BotaoTema from '../components/BotaoTema'
 import TopPaises from '../components/TopPaises'
 import { formatos } from '../util/formats'
 import { countryNamesPt } from '../util/countryNames'
@@ -56,8 +57,8 @@ const ROTULO_FLUXO = { Exportacao: 'Exportação', Importacao: 'Importação' }
 function TituloSecao({ titulo, descricao }) {
     return (
         <div className="flex flex-col gap-[6px]">
-            <h3 className="text-[18px] font-medium text-[#05306a]">{titulo}</h3>
-            <p className="text-justify text-[16px] font-light text-black">{descricao}</p>
+            <h3 className="text-[18px] font-medium text-marca-texto">{titulo}</h3>
+            <p className="text-justify text-[16px] font-light text-texto-1">{descricao}</p>
         </div>
     )
 }
@@ -153,15 +154,15 @@ function Dashboard() {
     // Barra compartilhada pelas duas abas; os chips de filtro são montados por aba
     const barraAtualizacao = (
         <div className="flex overflow-hidden rounded-[8px]">
-            <div className="w-1.5 bg-primary" />
-            <div className="flex flex-1 flex-wrap items-center gap-x-10 gap-y-2 bg-secondary-100 px-4 py-3">
-                <div className="flex items-center gap-2 text-[14px] text-grey-500">
-                    <Calendar size={18} className="text-primary" />
-                    <span>Período dos dados: <strong className="text-[#232323]">01/03/2020 a 26/02/2025</strong></span>
+            <div className="w-1.5 bg-marca-fundo" />
+            <div className="flex flex-1 flex-wrap items-center gap-x-10 gap-y-2 bg-marca-suave px-4 py-3">
+                <div className="flex items-center gap-2 text-[14px] text-texto-2">
+                    <Calendar size={18} className="text-marca-texto" />
+                    <span>Período dos dados: <strong className="text-texto-1">01/03/2020 a 26/02/2025</strong></span>
                 </div>
-                <div className="flex items-center gap-2 text-[14px] text-grey-500">
-                    <RefreshCw size={16} className="text-primary" />
-                    <span>Atualizado: <strong className="text-[#232323]">01/08/2026, 10:34</strong></span>
+                <div className="flex items-center gap-2 text-[14px] text-texto-2">
+                    <RefreshCw size={16} className="text-marca-texto" />
+                    <span>Atualizado: <strong className="text-texto-1">01/08/2026, 10:34</strong></span>
                 </div>
             </div>
         </div>
@@ -169,24 +170,25 @@ function Dashboard() {
 
     return (
         <>
-            <header className="h-[40px] bg-primary flex flex-row items-center justify-between p-5">
-                <div>
-                    <div className="h-[20px] flex items-center gap-2 px-4 h-full rounded-md bg-secondary-500 hover:bg-primary/80 transition-colors cursor-pointer">
-                        <Funnel className="text-white" size={14} />
-                        <p className="text-white text-sm">Exportação e Importação de mercadorias e bens de TICs do Piauí</p>
+            <header className="h-[40px] bg-cabecalho-fundo flex flex-row items-center justify-between gap-3 p-5">
+                <div className="min-w-0">
+                    <div className="h-[20px] flex items-center gap-2 px-4 h-full rounded-md bg-cabecalho-pilula hover:bg-cabecalho-pilula/80 transition-colors cursor-pointer">
+                        <Funnel className="shrink-0 text-white" size={14} />
+                        <p className="truncate text-white text-sm">Exportação e Importação de mercadorias e bens de TICs do Piauí</p>
                     </div>
                 </div>
+                <BotaoTema />
             </header>
 
             {erroCarga && (
-                <div className="mx-4 mt-4 rounded-lg border border-danger bg-red-50 px-4 py-3 text-[13px] text-danger lg:mx-7">
+                <div className="mx-4 mt-4 rounded-lg border border-estado-erro bg-estado-erro-suave px-4 py-3 text-[13px] text-estado-erro lg:mx-7">
                     Falha ao carregar dados do banco: {erroCarga}
                 </div>
             )}
 
             <div className="mx-4 mt-4 gap-4 flex flex-col pb-10 lg:mx-7">
                 <div className="flex flex-col items-end gap-[10px]">
-                    <h1 className="w-full text-[20px] font-medium text-black lg:text-[24px]">Exportação e Importação de mercadorias e bens de TICs do Piauí</h1>
+                    <h1 className="w-full text-[20px] font-medium text-texto-1 lg:text-[24px]">Exportação e Importação de mercadorias e bens de TICs do Piauí</h1>
                     <LevelToggle value={abaAtiva} onChange={setAbaAtiva} />
                 </div>
 
@@ -217,7 +219,7 @@ function Dashboard() {
                         onLimpar={limparTudo}
                     />
 
-                    <div className="mx-auto flex h-[420px] w-full max-w-[640px] rounded-[10px] border border-[#d9d9d9] bg-white p-3 lg:sticky lg:top-4 lg:mx-0 lg:h-[calc(100vh-2rem)] lg:min-h-[500px] lg:max-w-none lg:flex-1 lg:p-4">
+                    <div className="mx-auto flex h-[420px] w-full max-w-[640px] rounded-[10px] border border-borda bg-superficie-1 p-3 lg:sticky lg:top-4 lg:mx-0 lg:h-[calc(100vh-2rem)] lg:min-h-[500px] lg:max-w-none lg:flex-1 lg:p-4">
                         <PiauiMapOSM
                             data={dadosMapa}
                             territorios={territorios}
@@ -230,7 +232,7 @@ function Dashboard() {
                     <div className="flex w-full min-w-0 flex-col gap-4 lg:w-[532px] lg:shrink-0">
                         <EstadoPiauiCard stats={statsCard} titulo={tituloCard} carregando={carregando} />
 
-                        <div className="rounded-[10px] border border-[#d9d9d9] bg-white">
+                        <div className="rounded-[10px] border border-borda bg-superficie-1">
                             {carregando
                                 ? <Carregando altura="h-[300px]" />
                                 : <ChartLine labels={historico.labels} cities={historico.cities} period={periodo} empilhado />}
@@ -293,7 +295,7 @@ function Dashboard() {
                                         type="button"
                                         disabled={desabilitado}
                                         onClick={baixar('json', baixarJSON)}
-                                        className="flex flex-1 items-center justify-center gap-2 rounded-[10px] border border-[rgba(217,217,217,0.85)] bg-primary p-[10px] text-[16px] font-medium text-white transition-colors hover:bg-primary/85 disabled:cursor-not-allowed disabled:opacity-50"
+                                        className="flex flex-1 items-center justify-center gap-2 rounded-[10px] border border-borda bg-marca-fundo p-[10px] text-[16px] font-medium text-texto-sobre-marca transition-colors hover:bg-marca-fundo/85 disabled:cursor-not-allowed disabled:opacity-50"
                                     >
                                         <Icone formato="json" /> Baixar em JSON
                                     </button>
@@ -301,7 +303,7 @@ function Dashboard() {
                                         type="button"
                                         disabled={desabilitado}
                                         onClick={baixar('xlsx', baixarXLSX)}
-                                        className="flex flex-1 items-center justify-center gap-2 rounded-[10px] border border-[#d9d9d9] bg-[#9ec8ff] p-[10px] text-[16px] font-medium text-[#05306a] transition-colors hover:bg-[#8bbcf7] disabled:cursor-not-allowed disabled:opacity-50"
+                                        className="flex flex-1 items-center justify-center gap-2 rounded-[10px] border border-borda bg-marca-realce p-[10px] text-[16px] font-medium text-marca-realce-texto transition-colors hover:bg-marca-realce-hover disabled:cursor-not-allowed disabled:opacity-50"
                                     >
                                         <Icone formato="xlsx" /> Baixar em XLSX
                                     </button>
@@ -309,7 +311,7 @@ function Dashboard() {
                                         type="button"
                                         disabled={desabilitado}
                                         onClick={baixar('csv', baixarCSV)}
-                                        className="flex flex-1 items-center justify-center gap-2 rounded-[10px] border border-[#d9d9d9] p-[10px] text-[16px] font-medium text-[#05306a] transition-colors hover:bg-secondary-100 disabled:cursor-not-allowed disabled:opacity-50"
+                                        className="flex flex-1 items-center justify-center gap-2 rounded-[10px] border border-borda p-[10px] text-[16px] font-medium text-marca-texto transition-colors hover:bg-marca-suave disabled:cursor-not-allowed disabled:opacity-50"
                                     >
                                         <Icone formato="csv" /> Baixar em CSV
                                     </button>

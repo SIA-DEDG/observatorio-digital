@@ -2,7 +2,7 @@ import { Loader2 } from 'lucide-react'
 import { moedaCompacta, numeroCompacto, numero } from '../util/formats'
 
 const Selo = ({ children }) => (
-    <span className="flex min-h-[30px] min-w-0 items-center justify-center rounded-full bg-secondary-100/20 px-[10px] py-1 text-center text-[16px] leading-tight text-white">
+    <span className="flex min-h-[30px] min-w-0 items-center justify-center rounded-full bg-destaque-selo px-[10px] py-1 text-center text-[16px] leading-tight text-white">
         {children}
     </span>
 )
@@ -12,7 +12,7 @@ export default function EstadoPiauiCard({ stats, titulo = 'Estado do Piauí', ca
         (stats?.[chave] != null ? formatador.format(stats[chave]) : 'XX')
 
     return (
-        <div className="flex flex-col gap-[18px] rounded-[10px] bg-primary p-4">
+        <div className="flex flex-col gap-[18px] rounded-[10px] bg-destaque-fundo p-4">
             <h3 className="text-center text-[24px] font-semibold text-white">{titulo}</h3>
             {carregando ? (
                 <div className="flex h-[102px] items-center justify-center gap-2 text-white/80">

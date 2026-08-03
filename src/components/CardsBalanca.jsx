@@ -9,26 +9,26 @@ const EXPLICACAO_SALDO = 'Superávit: ocorre quando as vendas externas (exporta�
 // Abaixo de `lg` cabem dois cards por linha, então card, fonte e ícone encolhem
 function CardIndicador({ icone: Icone, titulo, periodo, rotulo, valor, tendencia, total, rotuloTotal, largo = false }) {
     return (
-        <div className={`flex min-w-0 flex-col gap-2 rounded-[14px] bg-secondary-100 p-2 lg:gap-[10px] lg:rounded-[20px] lg:p-[10px] ${largo ? 'col-span-2 lg:col-span-1' : ''}`}>
+        <div className={`flex min-w-0 flex-col gap-2 rounded-[14px] bg-marca-suave p-2 lg:gap-[10px] lg:rounded-[20px] lg:p-[10px] ${largo ? 'col-span-2 lg:col-span-1' : ''}`}>
             <div className="flex items-center justify-between gap-2 px-1 lg:gap-3 lg:px-2">
                 <div className="flex min-w-0 items-center gap-1.5 lg:gap-[10px]">
-                    <span className="flex size-[22px] shrink-0 items-center justify-center rounded-[5px] bg-[#092552] lg:size-[28px]">
+                    <span className="flex size-[22px] shrink-0 items-center justify-center rounded-[5px] bg-chip-icone lg:size-[28px]">
                         <Icone className="size-[15px] text-white lg:size-[22px]" />
                     </span>
-                    <span className="truncate text-[13px] text-[#475467] lg:text-[18px]">{titulo}</span>
+                    <span className="truncate text-[13px] text-texto-2 lg:text-[18px]">{titulo}</span>
                 </div>
-                <span className="shrink-0 text-[10px] text-grey-500 lg:text-[13px]">{periodo}</span>
+                <span className="shrink-0 text-[10px] text-texto-2 lg:text-[13px]">{periodo}</span>
             </div>
 
-            <div className="flex flex-1 flex-col gap-1 rounded-[12px] bg-white p-2 lg:rounded-[18px] lg:p-[10px]">
-                <span className="truncate text-[11px] font-medium text-grey-500 lg:text-[14px]" title={rotulo}>{rotulo}</span>
-                <span className="text-[15px] font-bold text-[#101828] lg:text-[20px]">{valor}</span>
+            <div className="flex flex-1 flex-col gap-1 rounded-[12px] bg-superficie-elevada p-2 lg:rounded-[18px] lg:p-[10px]">
+                <span className="truncate text-[11px] font-medium text-texto-2 lg:text-[14px]" title={rotulo}>{rotulo}</span>
+                <span className="text-[15px] font-bold text-texto-1 lg:text-[20px]">{valor}</span>
                 {tendencia}
             </div>
 
             <div className="flex items-center gap-1.5 px-1 lg:gap-[10px] lg:px-2">
-                <span className="text-[13px] font-bold text-black lg:text-[16px]">{total}</span>
-                <span className="text-[11px] font-medium text-grey-500 lg:text-[14px]">{rotuloTotal}</span>
+                <span className="text-[13px] font-bold text-texto-1 lg:text-[16px]">{total}</span>
+                <span className="text-[11px] font-medium text-texto-2 lg:text-[14px]">{rotuloTotal}</span>
             </div>
         </div>
     )
@@ -36,7 +36,7 @@ function CardIndicador({ icone: Icone, titulo, periodo, rotulo, valor, tendencia
 
 function LinhaTendencia({ tendencia }) {
     const Icone = tendencia.superavit ? TrendingUp : TrendingDown
-    const cor = tendencia.superavit ? 'text-[#2aa745]' : 'text-danger'
+    const cor = tendencia.superavit ? 'text-estado-ok' : 'text-estado-erro'
     const sinal = tendencia.saldo > 0 ? '+' : ''
 
     return (

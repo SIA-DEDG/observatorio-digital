@@ -14,11 +14,11 @@ export default function TopPaises({ linhas, limite = 5 }) {
     if (top.length === 0) return null
 
     return (
-        <div className="flex flex-col gap-[6px] border-b border-[#d9d9d9] px-[10px] py-3">
-            <span className="text-[12px] font-medium text-black">Top {top.length} países</span>
+        <div className="flex flex-col gap-[6px] border-b border-borda px-[10px] py-3">
+            <span className="text-[12px] font-medium text-texto-1">Top {top.length} países</span>
             <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
                 {top.map(([pais]) => (
-                    <span key={pais} className="flex items-center gap-[6px] text-[14px] text-black">
+                    <span key={pais} className="flex items-center gap-[6px] text-[14px] text-texto-1">
                         <BandeiraPais pais={pais} />
                         {countryNamesPt[pais] ?? pais}
                     </span>
