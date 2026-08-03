@@ -53,6 +53,24 @@ export default function BalancaComercial({ children }) {
 
     const catalogo = useMemo(() => montarCatalogoProdutos(registrosRecorte), [registrosRecorte])
 
+    /*
+     * No modo NCM a coluna de código da tabela deixa de ser o SH4 e passa a listar
+     * os NCMs daquela família — restritos à seleção, quando existe uma. As linhas
+     * seguem agregadas por SH4: é o único nível que `geral_municipios` guarda.
+     */
+    const ncmsPorSh4 = useMemo(() => {
+        if (modoCodigo !== 'NCM') return null
+        const selecionados = filtros.produtos.length > 0 ? new Set(filtros.produtos) : null
+        const porSh4 = new Map()
+        for (const opcao of opcoesProduto) {
+            if (selecionados && !selecionados.has(opcao.value)) continue
+            const lista = porSh4.get(opcao.sh4) ?? []
+            lista.push({ ncm: opcao.value, descricao: opcao.descricao })
+            porSh4.set(opcao.sh4, lista)
+        }
+        return porSh4
+    }, [modoCodigo, opcoesProduto, filtros.produtos])
+
     const rotuloProdutos = filtros.produtos
         .map((codigo) => opcoesProduto.find((opcao) => opcao.value === codigo)?.descricao ?? codigo)
 
@@ -114,7 +132,7 @@ export default function BalancaComercial({ children }) {
 
     if (erroCarga) {
         return (
-            <div className="rounded-lg border border-danger bg-red-50 px-4 py-3 text-[13px] text-danger">
+            <div className="rounded-lg border border-estado-erro bg-estado-erro-suave px-4 py-3 text-[13px] text-estado-erro">
                 Falha ao carregar dados do banco: {erroCarga}
             </div>
         )
@@ -158,6 +176,8 @@ export default function BalancaComercial({ children }) {
                 onLimparGrupo: () => mudarFiltros({ grupo: [], produtos: [] }),
             }}
             catalogo={catalogo}
+            modoCodigo={modoCodigo}
+            ncmsPorSh4={ncmsPorSh4}
         >
             {children}
         </BalancaComercialView>
