@@ -20,7 +20,7 @@ export default function EstadoPiauiCard({ stats, titulo = 'Estado do Piauí', ca
                     <span className="text-[13px]">Carregando dados…</span>
                 </div>
             ) : (
-                <div className="grid grid-cols-2 gap-2">
+                <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                     <Selo>{valorFormatado('produtos', numero)} Tipos de produtos</Selo>
                     <Selo>{valorFormatado('paises', numero)} Países</Selo>
                     <Selo>{valorFormatado('exportado', moedaCompacta)} Valor geral de exportação</Selo>

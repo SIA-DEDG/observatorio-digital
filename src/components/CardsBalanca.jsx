@@ -6,28 +6,29 @@ const percentual = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 2, ma
 const EXPLICACAO_SALDO = 'Superávit: ocorre quando as vendas externas (exportações) superam as compras de fora (importações). '
     + 'Déficit: ocorre se as importações forem maiores que as exportações.'
 
-function CardIndicador({ icone: Icone, titulo, periodo, rotulo, valor, tendencia, total, rotuloTotal }) {
+// Abaixo de `lg` cabem dois cards por linha, então card, fonte e ícone encolhem
+function CardIndicador({ icone: Icone, titulo, periodo, rotulo, valor, tendencia, total, rotuloTotal, largo = false }) {
     return (
-        <div className="flex min-w-[300px] flex-1 flex-col gap-[10px] rounded-[20px] bg-secondary-100 p-[10px]">
-            <div className="flex items-center justify-between gap-3 px-2">
-                <div className="flex min-w-0 items-center gap-[10px]">
-                    <span className="flex size-[28px] shrink-0 items-center justify-center rounded-[5px] bg-[#092552]">
-                        <Icone size={22} className="text-white" />
+        <div className={`flex min-w-0 flex-col gap-2 rounded-[14px] bg-secondary-100 p-2 lg:gap-[10px] lg:rounded-[20px] lg:p-[10px] ${largo ? 'col-span-2 lg:col-span-1' : ''}`}>
+            <div className="flex items-center justify-between gap-2 px-1 lg:gap-3 lg:px-2">
+                <div className="flex min-w-0 items-center gap-1.5 lg:gap-[10px]">
+                    <span className="flex size-[22px] shrink-0 items-center justify-center rounded-[5px] bg-[#092552] lg:size-[28px]">
+                        <Icone className="size-[15px] text-white lg:size-[22px]" />
                     </span>
-                    <span className="truncate text-[18px] text-[#475467]">{titulo}</span>
+                    <span className="truncate text-[13px] text-[#475467] lg:text-[18px]">{titulo}</span>
                 </div>
-                <span className="shrink-0 text-[13px] text-grey-500">{periodo}</span>
+                <span className="shrink-0 text-[10px] text-grey-500 lg:text-[13px]">{periodo}</span>
             </div>
 
-            <div className="flex flex-1 flex-col gap-1 rounded-[18px] bg-white p-[10px]">
-                <span className="truncate text-[14px] font-medium text-grey-500" title={rotulo}>{rotulo}</span>
-                <span className="text-[20px] font-bold text-[#101828]">{valor}</span>
+            <div className="flex flex-1 flex-col gap-1 rounded-[12px] bg-white p-2 lg:rounded-[18px] lg:p-[10px]">
+                <span className="truncate text-[11px] font-medium text-grey-500 lg:text-[14px]" title={rotulo}>{rotulo}</span>
+                <span className="text-[15px] font-bold text-[#101828] lg:text-[20px]">{valor}</span>
                 {tendencia}
             </div>
 
-            <div className="flex items-center gap-[10px] px-2">
-                <span className="text-[16px] font-bold text-black">{total}</span>
-                <span className="text-[14px] font-medium text-grey-500">{rotuloTotal}</span>
+            <div className="flex items-center gap-1.5 px-1 lg:gap-[10px] lg:px-2">
+                <span className="text-[13px] font-bold text-black lg:text-[16px]">{total}</span>
+                <span className="text-[11px] font-medium text-grey-500 lg:text-[14px]">{rotuloTotal}</span>
             </div>
         </div>
     )
@@ -40,8 +41,8 @@ function LinhaTendencia({ tendencia }) {
 
     return (
         <div className="flex items-center gap-1.5" title={EXPLICACAO_SALDO}>
-            <Icone size={14} className={`shrink-0 ${cor}`} />
-            <p className="min-w-0 text-[12px]">
+            <Icone className={`size-3 shrink-0 lg:size-[14px] ${cor}`} />
+            <p className="min-w-0 text-[10px] lg:text-[12px]">
                 <span className={`font-medium ${cor}`}>
                     {sinal}{moedaCompacta.format(tendencia.saldo)} — {tendencia.superavit ? 'Superávit' : 'Déficit'}
                 </span>
@@ -55,7 +56,8 @@ function LinhaTendencia({ tendencia }) {
 
 export default function CardsBalanca({ totais, tendencia, rotuloRecorte, periodo }) {
     return (
-        <div className="flex flex-wrap items-stretch gap-5">
+        // Exportação e Importação lado a lado; Saldo ocupa a linha inteira embaixo
+        <div className="grid grid-cols-2 items-stretch gap-3 lg:grid-cols-3 lg:gap-5">
             <CardIndicador
                 icone={BanknoteArrowUp}
                 titulo="Exportação"
@@ -75,6 +77,7 @@ export default function CardsBalanca({ totais, tendencia, rotuloRecorte, periodo
                 rotuloTotal="Importação Total"
             />
             <CardIndicador
+                largo
                 icone={CircleDollarSign}
                 titulo="Saldo comercial"
                 periodo={periodo}

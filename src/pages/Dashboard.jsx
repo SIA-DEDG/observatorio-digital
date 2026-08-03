@@ -179,14 +179,14 @@ function Dashboard() {
             </header>
 
             {erroCarga && (
-                <div className="mx-7 mt-4 rounded-lg border border-danger bg-red-50 px-4 py-3 text-[13px] text-danger">
+                <div className="mx-4 mt-4 rounded-lg border border-danger bg-red-50 px-4 py-3 text-[13px] text-danger lg:mx-7">
                     Falha ao carregar dados do banco: {erroCarga}
                 </div>
             )}
 
-            <div className="ml-7 mr-7 mt-4 gap-4 flex flex-col pb-10">
+            <div className="mx-4 mt-4 gap-4 flex flex-col pb-10 lg:mx-7">
                 <div className="flex flex-col items-end gap-[10px]">
-                    <h1 className="w-full text-[24px] font-medium text-black">Exportação e Importação do Piauí</h1>
+                    <h1 className="w-full text-[20px] font-medium text-black lg:text-[24px]">Exportação e Importação do Piauí</h1>
                     <LevelToggle value={abaAtiva} onChange={setAbaAtiva} />
                 </div>
 
@@ -200,7 +200,8 @@ function Dashboard() {
                     )}
 
                 {!abaBalanca && (
-                <div className="flex items-start gap-4">
+                // Empilha abaixo de lg: botão de filtro, mapa e só então a coluna lateral
+                <div className="flex flex-col items-stretch gap-4 lg:flex-row lg:items-start">
                     <FilterSidebar
                         filters={filtros}
                         onChange={setFiltros}
@@ -212,11 +213,11 @@ function Dashboard() {
                         catalogoNcm={catalogoNcm}
                         classificacao={classificacao}
                         onClassificacaoChange={(modo) => { setClassificacao(modo); setFiltros({ ...filtros, produtos: [] }) }}
-                    />
                         chips={chips}
                         onLimpar={limparTudo}
+                    />
 
-                    <div className="sticky top-4 flex h-[calc(100vh-2rem)] min-h-[500px] flex-1 rounded-[10px] border border-[#d9d9d9] bg-white p-4">
+                    <div className="mx-auto flex h-[420px] w-full max-w-[640px] rounded-[10px] border border-[#d9d9d9] bg-white p-3 lg:sticky lg:top-4 lg:mx-0 lg:h-[calc(100vh-2rem)] lg:min-h-[500px] lg:max-w-none lg:flex-1 lg:p-4">
                         <PiauiMapOSM
                             data={dadosMapa}
                             territorios={territorios}
@@ -226,7 +227,7 @@ function Dashboard() {
                         />
                     </div>
 
-                    <div className="flex w-[532px] shrink-0 flex-col gap-4">
+                    <div className="flex w-full min-w-0 flex-col gap-4 lg:w-[532px] lg:shrink-0">
                         <EstadoPiauiCard stats={statsCard} titulo={tituloCard} carregando={carregando} />
 
                         <div className="rounded-[10px] border border-[#d9d9d9] bg-white">
@@ -287,7 +288,7 @@ function Dashboard() {
                                 ? <Loader2 size={16} className="animate-spin" />
                                 : <Download size={16} />
                             return (
-                                <div className="flex gap-[13px]">
+                                <div className="flex flex-col gap-[13px] sm:flex-row">
                                     <button
                                         type="button"
                                         disabled={desabilitado}
