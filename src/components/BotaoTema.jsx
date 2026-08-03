@@ -15,11 +15,17 @@ export default function BotaoTema() {
     const preferencia = usePreferenciaTema()
     const indiceAtivo = Math.max(0, OPCOES.findIndex((opcao) => opcao.chave === preferencia))
 
+    /*
+     * shrink-0: sem isso o flex do cabeçalho espreme o grupo para caber o título
+     * (47px em vez de 90px a 320px de largura), os três botões se sobrepõem e a
+     * pílula deslizante — que é 1/3 da largura do grupo — para de casar com o
+     * ícone ativo. Quem cede espaço é o título, que já trunca.
+     */
     return (
         <div
             role="radiogroup"
             aria-label="Tema da interface"
-            className="relative grid grid-cols-3 rounded-full bg-white/15 p-[3px]"
+            className="relative grid shrink-0 grid-cols-3 rounded-full bg-white/15 p-[3px]"
         >
             <span
                 aria-hidden="true"
