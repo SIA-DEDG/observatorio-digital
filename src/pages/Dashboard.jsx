@@ -173,7 +173,7 @@ function Dashboard() {
                 <div>
                     <div className="h-[20px] flex items-center gap-2 px-4 h-full rounded-md bg-secondary-500 hover:bg-primary/80 transition-colors cursor-pointer">
                         <Funnel className="text-white" size={14} />
-                        <p className="text-white text-sm">Exportação e Importação do Piauí</p>
+                        <p className="text-white text-sm">Exportação e Importação de mercadorias e bens de TICs do Piauí</p>
                     </div>
                 </div>
             </header>
@@ -186,7 +186,7 @@ function Dashboard() {
 
             <div className="mx-4 mt-4 gap-4 flex flex-col pb-10 lg:mx-7">
                 <div className="flex flex-col items-end gap-[10px]">
-                    <h1 className="w-full text-[20px] font-medium text-black lg:text-[24px]">Exportação e Importação do Piauí</h1>
+                    <h1 className="w-full text-[20px] font-medium text-black lg:text-[24px]">Exportação e Importação de mercadorias e bens de TICs do Piauí</h1>
                     <LevelToggle value={abaAtiva} onChange={setAbaAtiva} />
                 </div>
 
