@@ -1,63 +1,279 @@
-@import "tailwindcss";
+/* Antes do Tailwind: @import precisa vir antes de qualquer regra, e o import do
+   Tailwind se expande em regras. */
 @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
 
-@theme {
-  --color-primary: #0E50A6;
-  --color-primary-100: #E3E8FE;
-  --color-primary-500: #0E50A6;
+/* O tema é resolvido para claro/escuro concreto pelo script do index.html, então
+   basta um seletor — sem bloco @media duplicado. */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
 
-  --color-secondary-100: #ECF0FE;
-  --color-secondary-500: #1661C3;
+/*
+ * Primitivos. Só estes trocam entre os temas; tudo abaixo referencia daqui.
+ * Os contrastes anotados são medidos (WCAG 2.1 relative luminance) contra a
+ * superfície onde o token é usado: 4,5:1 para texto, 3:1 para limite de
+ * componente e marca de gráfico.
+ */
+:root {
+    --fundo: #F9F9F9;
+    --superficie-1: #FFFFFF;
+    --superficie-2: #F2F4F7;
+    --superficie-3: #E9ECF0;
 
-  --color-grey-400: #73767B;
-  --color-grey-500: #515357;
-  --color-danger: #BD2830;
+    --texto-1: #232323;
+    --texto-2: #515357;
+    --texto-3: #73767B;
+    --texto-sobre-marca: #FFFFFF;
 
-  --color-bg: #F9F9F9;
-  --color-bg-100: #FFFFFF;
+    /* borda-sutil e borda são decorativas (abaixo de 3:1 de propósito); onde a
+       borda for o único indicador de um limite, usar borda-forte. */
+    --borda-sutil: #EEEEEE;
+    --borda: #D9D9D9;
+    --borda-forte: #B3B3B3;
 
-  --font-sans: 'Montserrat', system-ui, sans-serif;
+    /* A marca tem dois papéis: preenchimento (precisa de texto legível em cima)
+       e tinta (precisa contrastar com a superfície). No escuro os dois valores
+       divergem, então são tokens separados desde já. */
+    --marca-fundo: #0E50A6;
+    --marca-texto: #0E50A6;
+    --marca-suave: #ECF0FE;
+    --marca-realce: #9EC8FF;
+    --marca-realce-hover: #8BBCF7;
+    --marca-realce-texto: #05306A;
+
+    --cabecalho-fundo: #0E50A6;
+    --cabecalho-pilula: #1661C3;
+
+    /* Painel levantado sobre um card já tingido de marca-suave (CardsBalanca):
+       precisa subir em relação ao pai, não em relação à página. */
+    --superficie-elevada: #FFFFFF;
+    --chip-icone: #092552;
+
+    /* Card "Estado do Piauí": bloco de marca inteiro, com texto branco por cima */
+    --destaque-fundo: #0E50A6;
+    --destaque-selo: rgba(236, 240, 254, 0.2);
+
+    --estado-erro: #BD2830;
+    --estado-erro-suave: #FEF2F2;
+    --estado-ok: #2AA745;
+    --anel-foco: #0E50A6;
+
+    color-scheme: light;
+}
+
+[data-theme="dark"] {
+    /* Nunca preto puro: elevação precisa ser lida como superfície mais clara. */
+    --fundo: #0F1419;
+    --superficie-1: #161C23;
+    --superficie-2: #1E252E;
+    --superficie-3: #28303A;
+
+    --texto-1: #E8EDF2;
+    /* 14,56:1 sobre superficie-1 */
+    --texto-2: #AEB9C6;
+    /*  8,62:1 */
+    --texto-3: #939EAC;
+    /*  6,31:1; 4,91:1 no pior caso, sobre superficie-3 */
+    --texto-sobre-marca: #FFFFFF;
+
+    --borda-sutil: #2A323C;
+    --borda: #3A444F;
+    --borda-forte: #5C6979;
+    /*  3,06:1 — passa 1.4.11 */
+
+    /* #0E50A6 dá 2,39:1 no escuro: reprova texto e componente. O acento sobe de
+       tom e desce de croma, como M3 (tom 40 -> 80) e Carbon (azul 80 -> 50). */
+    --marca-fundo: #2C6FD1;
+    /* texto branco em cima: 4,88:1 */
+    --marca-texto: #7DB2F5;
+    /*  7,81:1 sobre superficie-1 */
+    --marca-suave: #16233A;
+    --marca-realce: #22303F;
+    --marca-realce-hover: #2C3D50;
+    --marca-realce-texto: #A9CEFA;
+    /*  8,25:1 sobre marca-realce */
+
+    /* Barra azul saturada pesa demais no escuro; o cabeçalho vira superfície. */
+    --cabecalho-fundo: #1E252E;
+    --cabecalho-pilula: #2C6FD1;
+
+    /* Clareia sobre marca-suave (#16233A); superficie-1 ficaria indistinguível dele */
+    --superficie-elevada: #28303A;
+    --chip-icone: #2C6FD1;
+
+    /* #2C6FD1 num bloco desse tamanho vira néon; o azul de marca desce de
+       luminosidade em vez de croma — branco em cima sobe para 9,36:1. */
+    --destaque-fundo: #1E4680;
+    --destaque-selo: rgba(125, 178, 245, 0.14);
+
+    --estado-erro: #F2757A;
+    /*  6,21:1 */
+    --estado-erro-suave: #2A1618;
+    --estado-ok: #4ADE80;
+    /*  9,84:1 */
+    --anel-foco: #7DB2F5;
+
+    color-scheme: dark;
+}
+
+/*
+ * `inline` faz a utility emitir var(--primitivo) em vez de var(--color-*), então
+ * trocar o primitivo troca o tema sem recompilar o CSS.
+ */
+@theme inline {
+    --color-fundo: var(--fundo);
+    --color-superficie-1: var(--superficie-1);
+    --color-superficie-2: var(--superficie-2);
+    --color-superficie-3: var(--superficie-3);
+
+    --color-texto-1: var(--texto-1);
+    --color-texto-2: var(--texto-2);
+    --color-texto-3: var(--texto-3);
+    --color-texto-sobre-marca: var(--texto-sobre-marca);
+
+    --color-borda-sutil: var(--borda-sutil);
+    --color-borda: var(--borda);
+    --color-borda-forte: var(--borda-forte);
+
+    --color-marca-fundo: var(--marca-fundo);
+    --color-marca-texto: var(--marca-texto);
+    --color-marca-suave: var(--marca-suave);
+    --color-marca-realce: var(--marca-realce);
+    --color-marca-realce-hover: var(--marca-realce-hover);
+    --color-marca-realce-texto: var(--marca-realce-texto);
+
+    --color-cabecalho-fundo: var(--cabecalho-fundo);
+    --color-cabecalho-pilula: var(--cabecalho-pilula);
+    --color-superficie-elevada: var(--superficie-elevada);
+    --color-chip-icone: var(--chip-icone);
+    --color-destaque-fundo: var(--destaque-fundo);
+    --color-destaque-selo: var(--destaque-selo);
+
+    --color-estado-erro: var(--estado-erro);
+    --color-estado-erro-suave: var(--estado-erro-suave);
+    --color-estado-ok: var(--estado-ok);
+    --color-anel-foco: var(--anel-foco);
+
+    /* Aliases dos nomes antigos: os usos existentes de bg-primary, text-grey-500,
+       text-danger e bg-secondary-100 já respondem ao tema sem editar o JSX. */
+    --color-primary: var(--marca-fundo);
+    --color-primary-100: var(--marca-suave);
+    --color-primary-500: var(--marca-fundo);
+    --color-secondary-100: var(--marca-suave);
+    --color-secondary-500: var(--cabecalho-pilula);
+    --color-grey-400: var(--texto-3);
+    --color-grey-500: var(--texto-2);
+    --color-danger: var(--estado-erro);
+    --color-bg: var(--fundo);
+    --color-bg-100: var(--superficie-1);
+
+    --font-sans: 'Montserrat', system-ui, sans-serif;
 }
 
 /* Em telas touch, entrega os gestos (pinça/arrasto) ao Leaflet em vez do navegador */
 .leaflet-container {
-  touch-action: none;
+    touch-action: none;
 }
 
-/* Tiles do OSM dessaturados e levemente escurecidos — fundo neutro para o mapa temático */
+/* Tiles do OSM dessaturados e levemente escurecidos — fundo neutro para o mapa
+   temático. Só no claro: no escuro o basemap já é o dark_all do CARTO. */
 .tiles-fundo-neutro {
-  filter: grayscale(0.85) brightness(0.85) contrast(0.95);
+    filter: grayscale(0.85) brightness(0.85) contrast(0.95);
+}
+
+/*
+ * O cromo do Leaflet é branco por padrão e não passa por classe do Tailwind.
+ * Os seletores repetem .leaflet-container porque é assim que o leaflet.css
+ * declara os seus — sem isso a ordem de importação decide, e ela varia.
+ */
+[data-theme="dark"] .leaflet-container {
+    background-color: var(--superficie-2);
+}
+
+[data-theme="dark"] .leaflet-bar a,
+[data-theme="dark"] .leaflet-bar a:hover {
+    background-color: var(--superficie-2);
+    border-bottom-color: var(--borda);
+    color: var(--texto-1);
+}
+
+[data-theme="dark"] .leaflet-bar a:hover {
+    background-color: var(--superficie-3);
+}
+
+[data-theme="dark"] .leaflet-bar a.leaflet-disabled {
+    background-color: var(--superficie-1);
+    color: var(--texto-3);
+}
+
+[data-theme="dark"] .leaflet-tooltip {
+    background-color: var(--superficie-3);
+    border-color: var(--borda-forte);
+    color: var(--texto-1);
+    box-shadow: 0 2px 8px rgb(0 0 0 / 0.5);
+}
+
+[data-theme="dark"] .leaflet-tooltip-left::before {
+    border-left-color: var(--borda-forte);
+}
+
+[data-theme="dark"] .leaflet-tooltip-right::before {
+    border-right-color: var(--borda-forte);
+}
+
+[data-theme="dark"] .leaflet-tooltip-top::before {
+    border-top-color: var(--borda-forte);
+}
+
+[data-theme="dark"] .leaflet-tooltip-bottom::before {
+    border-bottom-color: var(--borda-forte);
+}
+
+[data-theme="dark"] .leaflet-container .leaflet-control-attribution {
+    background-color: color-mix(in srgb, var(--superficie-1) 85%, transparent);
+    color: var(--texto-3);
+}
+
+[data-theme="dark"] .leaflet-container .leaflet-control-attribution a {
+    color: var(--marca-texto);
+}
+
+[data-theme="dark"] .leaflet-container .leaflet-control-scale-line {
+    background-color: color-mix(in srgb, var(--superficie-1) 75%, transparent);
+    border-color: var(--borda-forte);
+    color: var(--texto-1);
 }
 
 /* Quem rola é desenhado pelo BarraRolagem; a barra nativa sairia duplicada.
    Vale para os dois eixos — o Figma não mostra nenhuma das duas dentro do card. */
 .rolagem-oculta {
-  scrollbar-width: none;
+    scrollbar-width: none;
 }
 
 .rolagem-oculta::-webkit-scrollbar {
-  display: none;
+    display: none;
 }
 
 @layer base {
-  *,
-  *::before,
-  *::after {
-    box-sizing: border-box;
-    margin: 0;
-    border: 0;
-  }
 
-  body {
-    margin: 0;
-    background-color: var(--color-bg);
-  }
+    *,
+    *::before,
+    *::after {
+        box-sizing: border-box;
+        margin: 0;
+        border: 0;
+    }
 
-  button:not(:disabled),
-  [role="button"]:not(:disabled),
-  a[href],
-  label[for],
-  select {
-    cursor: pointer;
-  }
+    body {
+        margin: 0;
+        background-color: var(--fundo);
+        color: var(--texto-1);
+    }
+
+    button:not(:disabled),
+    [role="button"]:not(:disabled),
+    a[href],
+    label[for],
+    select {
+        cursor: pointer;
+    }
 }
