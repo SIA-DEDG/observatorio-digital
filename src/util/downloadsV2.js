@@ -1,8 +1,8 @@
 const COLUNAS = ['fluxo', 'ano', 'mes', 'municipio', 'pais', 'bloco_economico', 'codigo_sh4', 'descricao_sh4', 'fob_usd', 'kg_liquido']
 
-const nomeArquivoComData = () => `observatorio-piaui-${new Date().toISOString().slice(0, 10)}`
+export const nomeArquivoComData = () => `observatorio-piaui-${new Date().toISOString().slice(0, 10)}`
 
-function dispararDownload(blob, nomeComExtensao) {
+export function dispararDownload(blob, nomeComExtensao) {
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url

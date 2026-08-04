@@ -47,10 +47,20 @@ function CelulaNcm({ ncms }) {
     )
 }
 
+/*
+ * `exportar` entra onde o que se vê difere do valor bruto: o download leva o
+ * rótulo do fluxo e o nome completo do produto (a tela trunca), não o dado cru.
+ */
 const COLUNAS_BASE = [
     { chave: 'produto', label: 'Produtos', alinhamento: 'left', formato: (valor) => <CelulaNomeProduto value={valor} /> },
     { chave: 'categoria', label: 'Categoria', alinhamento: 'left' },
-    { chave: 'fluxo', label: 'Fluxo', alinhamento: 'left', formato: (valor) => ROTULO_FLUXO[valor] ?? valor },
+    {
+        chave: 'fluxo',
+        label: 'Fluxo',
+        alinhamento: 'left',
+        formato: (valor) => ROTULO_FLUXO[valor] ?? valor,
+        exportar: (valor) => ROTULO_FLUXO[valor] ?? valor,
+    },
 ]
 
 const COLUNAS_VALOR = [
@@ -76,6 +86,8 @@ export default function CatalogoProdutos({ linhas, altura = 'max-h-[448px]', mod
                 label: 'NCM',
                 alinhamento: 'left',
                 formato: (valor) => <CelulaNcm ncms={ncmsPorSh4.get(valor)} />,
+                // Na tela cabem dois selos e um "+N"; no arquivo vão todos
+                exportar: (valor) => (ncmsPorSh4.get(valor) ?? []).map((item) => formatarNcm(item.ncm)).join(' '),
             }
             : COLUNA_SH4
         return [...COLUNAS_BASE, coluna, ...COLUNAS_VALOR]
@@ -108,6 +120,7 @@ export default function CatalogoProdutos({ linhas, altura = 'max-h-[448px]', mod
             <DataTable
                 titulo="Produtos"
                 retratil
+                comDownload
                 colunas={colunas}
                 linhas={linhas}
                 altura={altura}

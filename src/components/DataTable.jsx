@@ -1,6 +1,7 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { ChevronDown, ChevronUp, ChevronsUpDown, Maximize2, X } from 'lucide-react'
 import BarraRolagem from './BarraRolagem'
+import BotoesDownload from './BotoesDownload'
 import { formatos } from '../util/formats'
 
 function SortIcon({ estado }) {
@@ -42,6 +43,7 @@ export default function DataTable({
     altura = 'max-h-[420px]',
     vazio = 'Nenhum registro encontrado',
     cabecalhoExtra = null,
+    comDownload = false,
 }) {
     const [ordem, setOrdem] = useState(null)
     const [aberto, setAberto] = useState(abertoInicial)
@@ -153,7 +155,7 @@ export default function DataTable({
 
                 {conteudoVisivel && (
                     <div id={idConteudo} ref={refConteudo} className={`rolagem-oculta overflow-auto ${expandido ? 'min-h-0 flex-1' : altura}`}>
-                        <table className="w-full border-collapse text-[14px]">
+                        <table className={`w-full border-collapse ${expandido ? 'text-[12px]' : 'text-[14px]'}`}>
                             <thead className="sticky top-0 z-10 bg-superficie-1 text-texto-1 shadow-[inset_0_1px_0_var(--borda),inset_0_-1px_0_var(--borda)]">
                                 <tr>
                                     {colunas.map((coluna, indice) => {
@@ -235,6 +237,11 @@ export default function DataTable({
 
             {/* A barra fica fora do card, como no Figma; a nativa some pelo rolagem-oculta */}
             {conteudoVisivel && <BarraRolagem alvoRef={refConteudo} />}
+
+            {/* Só em tela cheia: na página a aba já tem a própria seção de download */}
+            {expandido && comDownload && (
+                <BotoesDownload colunas={colunas} linhas={linhasOrdenadas} totais={totais} titulo={titulo} />
+            )}
         </div>
     )
 }
@@ -246,6 +253,7 @@ export default function DataTable({
  */
 function Cabecalho({ titulo, retratil, aberto, idConteudo, onAlternar, expandido, onExpandir, onFechar }) {
     const IconeAcao = expandido ? X : Maximize2
+    const tamanhoTitulo = expandido ? 'text-[14px]' : 'text-[16px]'
 
     return (
         <div className="flex h-[37px] items-center gap-1 bg-marca-realce px-[10px]">
@@ -258,14 +266,14 @@ function Cabecalho({ titulo, retratil, aberto, idConteudo, onAlternar, expandido
                         aria-controls={idConteudo}
                         className="flex min-w-0 flex-1 items-center justify-between gap-2 self-stretch text-left transition-opacity hover:opacity-80"
                     >
-                        <h3 className="truncate text-[16px] text-marca-realce-texto">{titulo}</h3>
+                        <h3 className={`truncate ${tamanhoTitulo} text-marca-realce-texto`}>{titulo}</h3>
                         <ChevronUp
                             size={18}
                             className={`shrink-0 text-marca-realce-texto transition-transform duration-200 ${aberto ? '' : 'rotate-180'}`}
                         />
                     </button>
                 )
-                : <h3 className="min-w-0 flex-1 truncate text-[16px] text-marca-realce-texto">{titulo}</h3>}
+                : <h3 className={`min-w-0 flex-1 truncate ${tamanhoTitulo} text-marca-realce-texto`}>{titulo}</h3>}
 
             <button
                 type="button"
