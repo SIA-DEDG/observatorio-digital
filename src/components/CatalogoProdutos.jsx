@@ -3,6 +3,8 @@ import CelulaNomeProduto from './CelulaNomeProduto'
 import DataTable from './DataTable'
 import { formatos, numero } from '../util/formats'
 import { formatarNcm } from '../util/aggregationsV2'
+import SecaoDownload from './SecaoDownload'
+import { exportarTabelaCSV, exportarTabelaJSON, exportarTabelaXLSX } from '../util/exportarTabela'
 
 const ROTULO_FLUXO = { Exportacao: 'Exportação', Importacao: 'Importação' }
 
@@ -104,6 +106,30 @@ export default function CatalogoProdutos({ linhas, altura = 'max-h-[448px]', mod
         return codigos.size
     }, [linhas, porNcm, ncmsPorSh4])
 
+    /*
+     * O arquivo é a tabela como está na tela. As linhas já chegam filtradas por
+     * filtrarEconomiaDigital + os filtros da página, então o recorte vem junto
+     * sem este componente saber quais filtros estão ativos.
+     *
+     * A linha de Total repete a regra do DataTable — soma as colunas marcadas
+     * com `total` — para o arquivo fechar com o mesmo número que a tela mostra.
+     */
+    const totais = useMemo(() => {
+        const comTotal = colunas.filter((coluna) => coluna.total)
+        if (comTotal.length === 0) return null
+        return Object.fromEntries(comTotal.map((coluna) => [
+            coluna.chave,
+            linhas.reduce((soma, linha) => soma + (Number(linha[coluna.chave]) || 0), 0),
+        ]))
+    }, [colunas, linhas])
+
+    const opcoesExportacao = { titulo: 'Catálogo de Produtos', totais }
+    const geradores = {
+        json: () => exportarTabelaJSON(colunas, linhas, opcoesExportacao),
+        xlsx: () => exportarTabelaXLSX(colunas, linhas, opcoesExportacao),
+        csv: () => exportarTabelaCSV(colunas, linhas, opcoesExportacao),
+    }
+
     return (
         <section className="flex w-full flex-col gap-[14px]">
             {/* Mesmo par título/descrição das seções da aba Detalhamento */}
@@ -120,11 +146,16 @@ export default function CatalogoProdutos({ linhas, altura = 'max-h-[448px]', mod
             <DataTable
                 titulo="Produtos"
                 retratil
-                comDownload
                 colunas={colunas}
                 linhas={linhas}
                 altura={altura}
                 vazio="Nenhum produto para a seleção atual."
+            />
+
+            <SecaoDownload
+                descricao="Baixe o catálogo acima nos formatos abaixo, com os filtros aplicados."
+                desabilitado={linhas.length === 0}
+                geradores={geradores}
             />
         </section>
     )

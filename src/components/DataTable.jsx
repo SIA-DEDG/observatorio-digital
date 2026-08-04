@@ -1,7 +1,6 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import { ChevronDown, ChevronUp, ChevronsUpDown, Maximize2, X } from 'lucide-react'
 import BarraRolagem from './BarraRolagem'
-import BotoesDownload from './BotoesDownload'
 import { formatos } from '../util/formats'
 
 function SortIcon({ estado }) {
@@ -43,7 +42,6 @@ export default function DataTable({
     altura = 'max-h-[420px]',
     vazio = 'Nenhum registro encontrado',
     cabecalhoExtra = null,
-    comDownload = false,
 }) {
     const [ordem, setOrdem] = useState(null)
     const [aberto, setAberto] = useState(abertoInicial)
@@ -237,11 +235,6 @@ export default function DataTable({
 
             {/* A barra fica fora do card, como no Figma; a nativa some pelo rolagem-oculta */}
             {conteudoVisivel && <BarraRolagem alvoRef={refConteudo} />}
-
-            {/* Só em tela cheia: na página a aba já tem a própria seção de download */}
-            {expandido && comDownload && (
-                <BotoesDownload colunas={colunas} linhas={linhasOrdenadas} totais={totais} titulo={titulo} />
-            )}
         </div>
     )
 }

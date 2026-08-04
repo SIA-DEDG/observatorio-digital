@@ -1,4 +1,4 @@
-import { Funnel, Calendar, RefreshCw, Loader2, Download } from 'lucide-react'
+import { Funnel, Calendar, RefreshCw } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import LevelToggle from '../components/LevelToggle'
 import FilterSidebar from '../components/FilterSidebar'
@@ -12,6 +12,7 @@ import Carregando from '../components/Carregando'
 import BalancaComercial from '../components/BalancaComercial'
 import BarraFiltrosAtivos from '../components/BarraFiltrosAtivos'
 import BotaoTema from '../components/BotaoTema'
+import SecaoDownload from '../components/SecaoDownload'
 import TopPaises from '../components/TopPaises'
 import { formatos } from '../util/formats'
 import { countryNamesPt } from '../util/countryNames'
@@ -72,7 +73,6 @@ function Dashboard() {
     const [catalogoNcm, setCatalogoNcm] = useState([])
     const [classificacao, setClassificacao] = useState('NCM')
     const [erroCarga, setErroCarga] = useState(null)
-    const [formatoBaixando, setFormatoBaixando] = useState(null)
 
     useEffect(() => {
         Promise.all([carregarDatasetV2(), carregarCatalogoNcm()])
@@ -272,52 +272,14 @@ function Dashboard() {
                                 </>
                             )}
 
-                        <TituloSecao titulo="Baixar Informações" descricao="Baixe as informações acima nos formatos abaixo" />
-                        {(() => {
-                            const baixar = (formato, gerarArquivo) => async () => {
-                                setFormatoBaixando(formato)
-                                try {
-                                    await gerarArquivo(registrosEscopo)
-                                } catch (erro) {
-                                    console.error(`baixar ${formato}:`, erro)
-                                    alert(`Falha ao gerar o ${formato.toUpperCase()}: ${erro.message}`)
-                                } finally {
-                                    setFormatoBaixando(null)
-                                }
-                            }
-                            const desabilitado = carregando || registrosEscopo.length === 0 || formatoBaixando !== null
-                            const Icone = ({ formato }) => formatoBaixando === formato
-                                ? <Loader2 size={16} className="animate-spin" />
-                                : <Download size={16} />
-                            return (
-                                <div className="flex flex-col gap-[13px] sm:flex-row">
-                                    <button
-                                        type="button"
-                                        disabled={desabilitado}
-                                        onClick={baixar('json', baixarJSON)}
-                                        className="flex flex-1 items-center justify-center gap-2 rounded-[10px] border border-borda bg-marca-fundo p-[10px] text-[16px] font-medium text-texto-sobre-marca transition-colors hover:bg-marca-fundo/85 disabled:cursor-not-allowed disabled:opacity-50"
-                                    >
-                                        <Icone formato="json" /> Baixar em JSON
-                                    </button>
-                                    <button
-                                        type="button"
-                                        disabled={desabilitado}
-                                        onClick={baixar('xlsx', baixarXLSX)}
-                                        className="flex flex-1 items-center justify-center gap-2 rounded-[10px] border border-borda bg-marca-realce p-[10px] text-[16px] font-medium text-marca-realce-texto transition-colors hover:bg-marca-realce-hover disabled:cursor-not-allowed disabled:opacity-50"
-                                    >
-                                        <Icone formato="xlsx" /> Baixar em XLSX
-                                    </button>
-                                    <button
-                                        type="button"
-                                        disabled={desabilitado}
-                                        onClick={baixar('csv', baixarCSV)}
-                                        className="flex flex-1 items-center justify-center gap-2 rounded-[10px] border border-borda p-[10px] text-[16px] font-medium text-marca-texto transition-colors hover:bg-marca-suave disabled:cursor-not-allowed disabled:opacity-50"
-                                    >
-                                        <Icone formato="csv" /> Baixar em CSV
-                                    </button>
-                                </div>
-                            )
-                        })()}
+                        <SecaoDownload
+                            desabilitado={carregando || registrosEscopo.length === 0}
+                            geradores={{
+                                json: () => baixarJSON(registrosEscopo),
+                                xlsx: () => baixarXLSX(registrosEscopo),
+                                csv: () => baixarCSV(registrosEscopo),
+                            }}
+                        />
                     </div>
                 </div>
                 )}
