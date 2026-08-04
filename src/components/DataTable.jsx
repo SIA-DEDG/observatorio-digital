@@ -1,5 +1,5 @@
-import { useId, useMemo, useRef, useState } from 'react'
-import { ChevronDown, ChevronUp, ChevronsUpDown } from 'lucide-react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
+import { ChevronDown, ChevronUp, ChevronsUpDown, Maximize2, X } from 'lucide-react'
 import BarraRolagem from './BarraRolagem'
 import { formatos } from '../util/formats'
 
@@ -20,6 +20,19 @@ const ALINHAMENTOS = {
 // Sticky + border-collapse perde a borda: nas seções fixas as divisórias vêm de inset shadow
 const DIVISORIA_FIXA = 'shadow-[inset_-1px_0_0_var(--borda)] last:shadow-none'
 
+/*
+ * Em tela cheia a primeira coluna gruda na esquerda. Sem isso a rolagem
+ * horizontal é cega: a 375px a tabela tem 1191px e nenhuma coluna cabe inteira,
+ * então ao arrastar para ver o valor você perde de vista de qual produto ele é.
+ * z acima do thead (z-10) no cruzamento das duas fixações, senão o canto some.
+ *
+ * O max-w não é estético: `sticky` não segura elemento mais largo que o
+ * scrollport — ele acompanha a rolagem em vez de ancorar. A 375px a coluna de
+ * produto passava dos 349px visíveis e escorregava 8px. Presa a largura, o nome
+ * quebra em linhas e a âncora se mantém.
+ */
+const COLUNA_FIXA = 'sticky left-0 max-w-[45vw] whitespace-normal bg-superficie-1'
+
 export default function DataTable({
     colunas,
     linhas,
@@ -32,8 +45,37 @@ export default function DataTable({
 }) {
     const [ordem, setOrdem] = useState(null)
     const [aberto, setAberto] = useState(abertoInicial)
+    const [expandido, setExpandido] = useState(false)
     const idConteudo = useId()
     const refConteudo = useRef(null)
+
+    /*
+     * Abaixo de lg a tabela não cabe: a 375px são 307px de área visível para
+     * 1191px de tabela — nenhuma das 7 colunas aparece inteira. Expandir tira a
+     * tabela do fluxo e entrega a viewport toda a ela.
+     */
+    useEffect(() => {
+        if (!expandido) return
+        const aoTeclar = (evento) => { if (evento.key === 'Escape') setExpandido(false) }
+        document.addEventListener('keydown', aoTeclar)
+        // Trava a rolagem do fundo enquanto a tabela cobre a tela
+        const rolagemOriginal = document.body.style.overflow
+        document.body.style.overflow = 'hidden'
+        return () => {
+            document.removeEventListener('keydown', aoTeclar)
+            document.body.style.overflow = rolagemOriginal
+        }
+    }, [expandido])
+
+    // A partir de lg a tabela já cabe na página e o botão some; sem isso quem
+    // expandisse no tablet e alargasse a janela ficaria preso na tela cheia
+    useEffect(() => {
+        const desktop = window.matchMedia('(min-width: 64rem)')
+        const fecharNoDesktop = () => { if (desktop.matches) setExpandido(false) }
+        fecharNoDesktop()
+        desktop.addEventListener('change', fecharNoDesktop)
+        return () => desktop.removeEventListener('change', fecharNoDesktop)
+    }, [])
 
     const alinhamentoDe = (coluna, indice) => coluna.alinhamento ?? (indice === 0 ? 'left' : 'right')
 
@@ -73,25 +115,44 @@ export default function DataTable({
             return null
         })
 
-    const conteudoVisivel = !retratil || aberto
+    // Expandido, o retrátil não faz sentido: a tela inteira é da tabela
+    const conteudoVisivel = expandido || !retratil || aberto
 
+    /*
+     * Uma árvore só; o que muda entre a forma embutida e a tela cheia são as
+     * classes. Assim ordenação e posição de rolagem sobrevivem à troca — mesmo
+     * arranjo que o PainelFiltros usa para os três breakpoints dele.
+     *
+     * z acima de 1110 porque é onde o painel de filtros põe a folha dele, que
+     * por sua vez já sobe acima dos controles do Leaflet em z-[1000].
+     */
     return (
-        <div className="flex w-full flex-col gap-[17px]">
-            <div className="flex w-full flex-col overflow-hidden rounded-[5px] border border-borda bg-superficie-1">
+        <div
+            role={expandido ? 'dialog' : undefined}
+            aria-modal={expandido ? 'true' : undefined}
+            aria-label={expandido ? titulo : undefined}
+            className={expandido
+                ? 'fixed inset-0 z-[1200] flex flex-col gap-2 bg-fundo p-3'
+                : 'flex w-full flex-col gap-[17px]'}
+        >
+            <div className={`flex w-full flex-col overflow-hidden rounded-[5px] border border-borda bg-superficie-1 ${expandido ? 'min-h-0 flex-1' : ''}`}>
                 {titulo && (
                     <Cabecalho
                         titulo={titulo}
-                        retratil={retratil}
+                        retratil={retratil && !expandido}
                         aberto={aberto}
                         idConteudo={idConteudo}
                         onAlternar={() => setAberto((atual) => !atual)}
+                        expandido={expandido}
+                        onExpandir={() => setExpandido(true)}
+                        onFechar={() => setExpandido(false)}
                     />
                 )}
 
                 {conteudoVisivel && cabecalhoExtra}
 
                 {conteudoVisivel && (
-                    <div id={idConteudo} ref={refConteudo} className={`rolagem-oculta overflow-auto ${altura}`}>
+                    <div id={idConteudo} ref={refConteudo} className={`rolagem-oculta overflow-auto ${expandido ? 'min-h-0 flex-1' : altura}`}>
                         <table className="w-full border-collapse text-[14px]">
                             <thead className="sticky top-0 z-10 bg-superficie-1 text-texto-1 shadow-[inset_0_1px_0_var(--borda),inset_0_-1px_0_var(--borda)]">
                                 <tr>
@@ -103,7 +164,7 @@ export default function DataTable({
                                                 key={coluna.chave}
                                                 scope="col"
                                                 aria-sort={estado ? (estado === 'asc' ? 'ascending' : 'descending') : 'none'}
-                                                className={`whitespace-nowrap px-3 py-2 font-light uppercase ${DIVISORIA_FIXA} ${alinhamento.celula}`}
+                                                className={`px-3 py-2 font-light uppercase ${DIVISORIA_FIXA} ${alinhamento.celula} ${expandido && indice === 0 ? `${COLUNA_FIXA} z-20` : 'whitespace-nowrap'}`}
                                             >
                                                 <button
                                                     type="button"
@@ -131,14 +192,14 @@ export default function DataTable({
                                 {linhasOrdenadas.map((linha, indiceLinha) => (
                                     <tr
                                         key={linha.id ?? indiceLinha}
-                                        className="border-b border-borda bg-superficie-1 transition-colors hover:bg-marca-suave"
+                                        className="group border-b border-borda bg-superficie-1 transition-colors hover:bg-marca-suave"
                                     >
                                         {colunas.map((coluna, indice) => {
                                             const formatar = coluna.formato ?? formatos.texto
                                             return (
                                                 <td
                                                     key={coluna.chave}
-                                                    className={`whitespace-nowrap border-r border-borda px-3 py-2 text-texto-1 last:border-r-0 ${ALINHAMENTOS[alinhamentoDe(coluna, indice)].celula}`}
+                                                    className={`border-r border-borda px-3 py-2 text-texto-1 last:border-r-0 ${ALINHAMENTOS[alinhamentoDe(coluna, indice)].celula} ${expandido && indice === 0 ? `${COLUNA_FIXA} z-[1] group-hover:bg-marca-suave` : 'whitespace-nowrap'}`}
                                                 >
                                                     {formatar(linha[coluna.chave], linha)}
                                                 </td>
@@ -148,15 +209,17 @@ export default function DataTable({
                                 ))}
                             </tbody>
 
+                            {/* z na seção, como no thead: sem isso a coluna fixa das linhas
+                                passava por cima do "Total" ao rolar para a direita */}
                             {totais && linhasOrdenadas.length > 0 && (
-                                <tfoot className="sticky bottom-0 bg-superficie-1 shadow-[inset_0_1px_0_var(--borda)]">
+                                <tfoot className="sticky bottom-0 z-20 bg-superficie-1 shadow-[inset_0_1px_0_var(--borda)]">
                                     <tr className="font-medium text-texto-1">
                                         {colunas.map((coluna, indice) => {
                                             const formatar = coluna.formato ?? formatos.texto
                                             return (
                                                 <td
                                                     key={coluna.chave}
-                                                    className={`whitespace-nowrap px-3 py-2 ${DIVISORIA_FIXA} ${ALINHAMENTOS[alinhamentoDe(coluna, indice)].celula}`}
+                                                    className={`px-3 py-2 ${DIVISORIA_FIXA} ${ALINHAMENTOS[alinhamentoDe(coluna, indice)].celula} ${expandido && indice === 0 ? `${COLUNA_FIXA} z-20` : 'whitespace-nowrap'}`}
                                                 >
                                                     {indice === 0 ? 'Total' : coluna.total ? formatar(totais[coluna.chave]) : ''}
                                                 </td>
@@ -176,32 +239,44 @@ export default function DataTable({
     )
 }
 
-function Cabecalho({ titulo, retratil, aberto, idConteudo, onAlternar }) {
-    const conteudo = (
-        <>
-            <h3 className="truncate text-[16px] text-marca-realce-texto">{titulo}</h3>
-            {retratil && (
-                <ChevronUp
-                    size={18}
-                    className={`shrink-0 text-marca-realce-texto transition-transform duration-200 ${aberto ? '' : 'rotate-180'}`}
-                />
-            )}
-        </>
-    )
-
-    if (!retratil) {
-        return <div className="flex h-[37px] items-center bg-marca-realce px-[10px]">{conteudo}</div>
-    }
+/*
+ * O recolher e o expandir são dois controles irmãos, nunca aninhados: o título
+ * inteiro já era o botão de recolher, e pôr o expandir dentro dele geraria
+ * botão dentro de botão — HTML inválido e clique ambíguo.
+ */
+function Cabecalho({ titulo, retratil, aberto, idConteudo, onAlternar, expandido, onExpandir, onFechar }) {
+    const IconeAcao = expandido ? X : Maximize2
 
     return (
-        <button
-            type="button"
-            onClick={onAlternar}
-            aria-expanded={aberto}
-            aria-controls={idConteudo}
-            className="flex h-[37px] w-full items-center justify-between gap-2 bg-marca-realce px-[10px] text-left transition-colors hover:bg-marca-realce-hover"
-        >
-            {conteudo}
-        </button>
+        <div className="flex h-[37px] items-center gap-1 bg-marca-realce px-[10px]">
+            {retratil
+                ? (
+                    <button
+                        type="button"
+                        onClick={onAlternar}
+                        aria-expanded={aberto}
+                        aria-controls={idConteudo}
+                        className="flex min-w-0 flex-1 items-center justify-between gap-2 self-stretch text-left transition-opacity hover:opacity-80"
+                    >
+                        <h3 className="truncate text-[16px] text-marca-realce-texto">{titulo}</h3>
+                        <ChevronUp
+                            size={18}
+                            className={`shrink-0 text-marca-realce-texto transition-transform duration-200 ${aberto ? '' : 'rotate-180'}`}
+                        />
+                    </button>
+                )
+                : <h3 className="min-w-0 flex-1 truncate text-[16px] text-marca-realce-texto">{titulo}</h3>}
+
+            <button
+                type="button"
+                onClick={expandido ? onFechar : onExpandir}
+                aria-label={expandido ? `Fechar ${titulo} em tela cheia` : `Expandir ${titulo} em tela cheia`}
+                title={expandido ? 'Fechar (Esc)' : 'Expandir'}
+                // Só abaixo de lg: no desktop a tabela já cabe na página
+                className={`flex size-7 shrink-0 items-center justify-center rounded text-marca-realce-texto transition-colors hover:bg-marca-realce-hover ${expandido ? '' : 'lg:hidden'}`}
+            >
+                <IconeAcao size={16} />
+            </button>
+        </div>
     )
 }
