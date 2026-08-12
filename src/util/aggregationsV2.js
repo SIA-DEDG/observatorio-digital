@@ -42,6 +42,7 @@ const CHAVE_CACHE_LOCAL = 'observatorio:geral_municipios:v5'
 const VALIDADE_CACHE_MS = 60 * 60 * 1000
 
 let cacheEmMemoria = null
+let cacheBalancaBrasil = null
 
 function lerCacheLocal() {
     try {
@@ -170,6 +171,13 @@ export async function carregarDatasetV2() {
 /** Catálogo NCM (só TIC), para o filtro de produto no modo NCM. */
 export async function carregarCatalogoNcm() {
     return (await carregarTudo()).ncms
+}
+
+/** Totais mensais do Brasil, usados como denominador dos rankings municipais. */
+export async function carregarBalancaBrasilV2() {
+    if (cacheBalancaBrasil) return cacheBalancaBrasil
+    cacheBalancaBrasil = await buscarTudo('balanca_brasil', 'ano,mes,exportacao_fob,importacao_fob')
+    return cacheBalancaBrasil
 }
 
 export const ehExportacao = (registro) => registro.fluxo === 'Exportacao'
@@ -345,6 +353,112 @@ export function montarDadosMapaV2(registros) {
         delete agregado._produtosImp
     }
     return porMunicipio
+}
+
+const dentroDoPeriodo = (registro, inicio, fim) => {
+    const competencia = anoMes(registro)
+    return (!inicio || competencia >= inicio.slice(0, 7))
+        && (!fim || competencia <= fim.slice(0, 7))
+}
+
+/**
+ * Top 5 municípios por fluxo no recorte atual.
+ *
+ * - Brasil: total nacional do mesmo fluxo e período;
+ * - Economia Digital: total TIC do escopo/filtros atuais;
+ * - Produtos no município: recorte TIC/produto sobre todos os produtos daquele
+ *   município, preservando fluxo, país, período e seleção territorial.
+ */
+export function montarRankingMunicipiosV2(
+    registrosRecorte,
+    registrosTotaisMunicipios,
+    balancaBrasil,
+    limite = 5,
+) {
+    const somarPorMunicipio = (registros) => {
+        const porMunicipio = new Map()
+        for (const registro of registros) {
+            const agregado = porMunicipio.get(registro.municipio) ?? {
+                exportado: 0,
+                importado: 0,
+                produtosExportados: new Map(),
+                produtosImportados: new Map(),
+            }
+            porMunicipio.set(registro.municipio, agregado)
+            const valor = Number(registro.fob_usd)
+            const produto = registro.descricao_sh4 ?? String(registro.codigo_sh4)
+            const chaveProduto = `${registro.codigo_sh4}|${grupoDoRegistro(registro)}`
+            if (ehExportacao(registro)) {
+                agregado.exportado += valor
+                const atual = agregado.produtosExportados.get(chaveProduto) ?? { nome: produto, grupo: grupoDoRegistro(registro), valor: 0 }
+                atual.valor += valor
+                agregado.produtosExportados.set(chaveProduto, atual)
+            }
+            if (ehImportacao(registro)) {
+                agregado.importado += valor
+                const atual = agregado.produtosImportados.get(chaveProduto) ?? { nome: produto, grupo: grupoDoRegistro(registro), valor: 0 }
+                atual.valor += valor
+                agregado.produtosImportados.set(chaveProduto, atual)
+            }
+        }
+        return porMunicipio
+    }
+
+    const recortePorMunicipio = somarPorMunicipio(registrosRecorte)
+    const totalPorMunicipio = somarPorMunicipio(registrosTotaisMunicipios)
+    const totalDigital = { exportado: 0, importado: 0 }
+    for (const agregado of recortePorMunicipio.values()) {
+        totalDigital.exportado += agregado.exportado
+        totalDigital.importado += agregado.importado
+    }
+
+    const totalBrasil = balancaBrasil.reduce((total, registro) => {
+        total.exportado += Number(registro.exportacao_fob) || 0
+        total.importado += Number(registro.importacao_fob) || 0
+        return total
+    }, { exportado: 0, importado: 0 })
+
+    const participacao = (parte, todo) => (todo > 0 ? (parte / todo) * 100 : null)
+    const montarFluxo = (fluxo, rotulo) => [...recortePorMunicipio.entries()]
+        .map(([municipio, valores]) => {
+            const produtos = fluxo === 'exportado' ? valores.produtosExportados : valores.produtosImportados
+            const principal = [...produtos.values()].sort((a, b) => b.valor - a.valor)[0]
+            return {
+                municipio,
+                valor: valores[fluxo],
+                produtoPrincipal: principal?.nome ?? null,
+                grupoProdutoPrincipal: principal?.grupo ?? null,
+            }
+        })
+        .filter((linha) => linha.valor > 0)
+        .sort((a, b) => b.valor - a.valor)
+        .slice(0, limite)
+        .map((linha, indice) => ({
+            id: `${fluxo}:${linha.municipio}`,
+            posicao: indice + 1,
+            fluxo: rotulo,
+            ...linha,
+            percentualBrasil: participacao(linha.valor, totalBrasil[fluxo]),
+            percentualEconomiaDigital: participacao(linha.valor, totalDigital[fluxo]),
+            percentualProdutosMunicipio: participacao(linha.valor, totalPorMunicipio.get(linha.municipio)?.[fluxo] ?? 0),
+        }))
+
+    return [
+        ...montarFluxo('exportado', 'Exportação'),
+        ...montarFluxo('importado', 'Importação'),
+    ]
+}
+
+/**
+ * Filtra a série nacional pelo período sem aplicar filtros municipais/produto.
+ * Quando o usuário não informa uma ponta, usa a cobertura real da base municipal
+ * para impedir que meses nacionais sem contraparte no Piauí distorçam a razão.
+ */
+export function filtrarBalancaBrasilPorPeriodo(registros, inicio, fim, referencia = []) {
+    const competencias = referencia.map(anoMes).sort()
+    const inicioEfetivo = inicio || competencias[0] || ''
+    const fimEfetivo = fim || competencias.at(-1) || ''
+    return registros.filter((registro) => dentroDoPeriodo(registro, inicioEfetivo, fimEfetivo))
 }
 
 export function montarHistoricoAnual(registrosDoEscopo, { territorios, municipios }) {

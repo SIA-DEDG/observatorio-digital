@@ -21,6 +21,7 @@ const CENTRO_PIAUI = [-7.4, -42.8]
 const ZOOM_INICIAL = 6
 const ZOOM_MINIMO = 6
 const ZOOM_MAXIMO = 12
+const ZOOM_MAXIMO_MUNICIPIO = 9
 const LIMITES_NAVEGACAO = [
     [-12.5, -48.5],
     [-1.5, -37.5], 
@@ -276,7 +277,7 @@ export default function PiauiMapOSM({
         }
         if (municipios.length > 0) {
             const limites = unir(municipios.map((municipio) => limitesPorMunicipio[normKey(municipio)]))
-            if (limites) mapa.fitBounds(limites, { padding: [48, 48] })
+            if (limites) mapa.fitBounds(limites, { padding: [48, 48], maxZoom: ZOOM_MAXIMO_MUNICIPIO })
         } else if (territorios.length > 0) {
             const limites = unir(territorios.map((territorio) => limitesPorTerritorio[territorio]))
             if (limites) mapa.fitBounds(limites, { padding: [24, 24] })

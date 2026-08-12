@@ -21,12 +21,15 @@ import { territorioDoMunicipio } from '../util/territoriosPI'
 import {
     carregarDatasetV2,
     carregarCatalogoNcm,
+    carregarBalancaBrasilV2,
     opcoesFiltrosV2,
     aplicarFiltrosV2,
     filtrarEconomiaDigital,
     filtrarPorEscopo,
+    filtrarBalancaBrasilPorPeriodo,
     montarDadosMapaV2,
     montarHistoricoAnual,
+    montarRankingMunicipiosV2,
     montarPaisesPorFluxo,
     montarStatsCardV2,
     FILTROS_INICIAIS_V2,
@@ -53,6 +56,28 @@ const COLUNAS_PAIS = [
     { chave: 'importado', label: 'Valor importado (US$)', formato: formatos.moedaCompacta, total: true },
     { chave: 'kgImportado', label: 'Quant. importada (t)', formato: formatos.toneladas, total: true },
 ]
+
+const COLUNAS_MUNICIPIOS_EXPORTACAO = [
+    { chave: 'posicao', label: '#', alinhamento: 'center' },
+    { chave: 'municipio', label: 'Município', alinhamento: 'left' },
+    { chave: 'produtoPrincipal', label: 'Produto digital mais exportado', alinhamento: 'center', formato: formatoProduto },
+    { chave: 'grupoProdutoPrincipal', label: 'Grupo temático', alinhamento: 'center' },
+    { chave: 'valor', label: 'Valor exportado (US$)', formato: formatos.moedaCompacta },
+    { chave: 'percentualBrasil', label: '% das exportações do Brasil', formato: formatos.percentualPreciso },
+    { chave: 'percentualEconomiaDigital', label: '% das exportações digitais filtradas', formato: formatos.percentual },
+    { chave: 'percentualProdutosMunicipio', label: '% dos produtos digitais nas exportações do município', formato: formatos.percentual },
+]
+
+const COLUNAS_MUNICIPIOS_IMPORTACAO = [
+    { chave: 'posicao', label: '#', alinhamento: 'center' },
+    { chave: 'municipio', label: 'Município', alinhamento: 'left' },
+    { chave: 'produtoPrincipal', label: 'Produto digital mais importado', alinhamento: 'center', formato: formatoProduto },
+    { chave: 'grupoProdutoPrincipal', label: 'Grupo temático', alinhamento: 'center' },
+    { chave: 'valor', label: 'Valor importado (US$)', formato: formatos.moedaCompacta },
+    { chave: 'percentualBrasil', label: '% das importações do Brasil', formato: formatos.percentualPreciso },
+    { chave: 'percentualEconomiaDigital', label: '% das importações digitais filtradas', formato: formatos.percentual },
+    { chave: 'percentualProdutosMunicipio', label: '% dos produtos digitais nas importações do município', formato: formatos.percentual },
+]
 const ROTULO_FLUXO = { Exportacao: 'Exportação', Importacao: 'Importação' }
 
 function TituloSecao({ titulo, descricao }) {
@@ -71,12 +96,17 @@ function Dashboard() {
     const [municipios, setMunicipios] = useState([])
     const [dataset, setDataset] = useState(null)
     const [catalogoNcm, setCatalogoNcm] = useState([])
+    const [balancaBrasil, setBalancaBrasil] = useState(null)
     const [classificacao, setClassificacao] = useState('NCM')
     const [erroCarga, setErroCarga] = useState(null)
 
     useEffect(() => {
-        Promise.all([carregarDatasetV2(), carregarCatalogoNcm()])
-            .then(([registros, ncms]) => { setDataset(registros); setCatalogoNcm(ncms) })
+        Promise.all([carregarDatasetV2(), carregarCatalogoNcm(), carregarBalancaBrasilV2()])
+            .then(([registros, ncms, brasil]) => {
+                setDataset(registros)
+                setCatalogoNcm(ncms)
+                setBalancaBrasil(brasil)
+            })
             .catch((erro) => { console.error('carregarDatasetV2:', erro.message); setErroCarga(erro.message) })
     }, [])
 
@@ -99,6 +129,16 @@ function Dashboard() {
     const registrosFiltrados = useMemo(() => aplicarFiltrosV2(economiaDigital, filtros), [economiaDigital, filtros])
     const dadosMapa = useMemo(() => (dataset ? montarDadosMapaV2(registrosFiltrados) : null), [dataset, registrosFiltrados])
     const registrosEscopo = useMemo(() => filtrarPorEscopo(registrosFiltrados, territorios, municipios), [registrosFiltrados, territorios, municipios])
+    const registrosTotaisMunicipios = useMemo(() => {
+        if (!dataset) return []
+        const filtrosSemProduto = { ...filtros, setor: [], grupo: [], produtos: [] }
+        return filtrarPorEscopo(aplicarFiltrosV2(dataset, filtrosSemProduto), territorios, municipios)
+    }, [dataset, filtros, territorios, municipios])
+    const rankingMunicipios = useMemo(() => {
+        if (!balancaBrasil) return []
+        const brasilNoPeriodo = filtrarBalancaBrasilPorPeriodo(balancaBrasil, filtros.inicio, filtros.fim, dataset)
+        return montarRankingMunicipiosV2(registrosEscopo, registrosTotaisMunicipios, brasilNoPeriodo)
+    }, [registrosEscopo, registrosTotaisMunicipios, balancaBrasil, dataset, filtros.inicio, filtros.fim])
     const historico = useMemo(
         () => montarHistoricoAnual(registrosEscopo, { territorios, municipios: territorios.length > 0 ? [] : municipios }),
         [registrosEscopo, territorios, municipios],
@@ -107,7 +147,7 @@ function Dashboard() {
     const statsCard = useMemo(() => (dataset ? montarStatsCardV2(registrosEscopo) : null), [dataset, registrosEscopo])
 
     const abaBalanca = abaAtiva === 'balanca-comercial'
-    const carregando = !dataset && !erroCarga
+    const carregando = (!dataset || !balancaBrasil) && !erroCarga
     const mostrarExportacao = filtros.fluxo.length === 0 || filtros.fluxo.includes('Exportacao')
     const mostrarImportacao = filtros.fluxo.length === 0 || filtros.fluxo.includes('Importacao')
 
@@ -237,6 +277,39 @@ function Dashboard() {
                                 ? <Carregando altura="h-[300px]" />
                                 : <ChartLine labels={historico.labels} cities={historico.cities} period={periodo} empilhado />}
                         </div>
+
+                        {municipios.length === 0 && (
+                            <>
+                                <TituloSecao
+                                    titulo="Top 5 municípios"
+                                    descricao={`Os percentuais usam bases diferentes: participação do município no Brasil, no fluxo digital filtrado e participação dos produtos digitais em todo o fluxo do próprio município, no período de ${periodo}.`}
+                                />
+                                {carregando
+                                    ? <Carregando altura="h-[220px]" />
+                                    : (
+                                        <>
+                                            {mostrarExportacao && (
+                                                <DataTable
+                                                    titulo="Top 5 municípios exportadores"
+                                                    retratil
+                                                    colunas={COLUNAS_MUNICIPIOS_EXPORTACAO}
+                                                    linhas={rankingMunicipios.filter((linha) => linha.fluxo === 'Exportação')}
+                                                    altura="max-h-[300px]"
+                                                />
+                                            )}
+                                            {mostrarImportacao && (
+                                                <DataTable
+                                                    titulo="Top 5 municípios importadores"
+                                                    retratil
+                                                    colunas={COLUNAS_MUNICIPIOS_IMPORTACAO}
+                                                    linhas={rankingMunicipios.filter((linha) => linha.fluxo === 'Importação')}
+                                                    altura="max-h-[300px]"
+                                                />
+                                            )}
+                                        </>
+                                    )}
+                            </>
+                        )}
 
                         <TituloSecao
                             titulo="Países"
