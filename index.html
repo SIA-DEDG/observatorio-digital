@@ -7,19 +7,16 @@
     <meta name="color-scheme" content="light dark" />
     <title>Observatório de Economia Digital</title>
     <!--
-      Bloqueia a pintura de propósito: resolve "sistema" para claro/escuro
-      concreto antes do primeiro frame, senão a tela pisca no tema errado.
-      Precisa ser inline — em arquivo externo perde o efeito.
+      Bloqueia a pintura de propósito: aplica o tema salvo antes do primeiro
+      frame, senão quem escolheu o escuro vê a tela piscar em claro. O padrão é
+      o claro — o sistema operacional não decide. Precisa ser inline: em arquivo
+      externo perde o efeito.
     -->
     <script>
       (function () {
         try {
-          var preferencia = localStorage.getItem('observatorio:tema')
-          var escuro =
-            preferencia === 'dark' ||
-            ((!preferencia || preferencia === 'system') &&
-              window.matchMedia('(prefers-color-scheme: dark)').matches)
-          document.documentElement.dataset.theme = escuro ? 'dark' : 'light'
+          var salvo = localStorage.getItem('observatorio:tema')
+          document.documentElement.dataset.theme = salvo === 'dark' ? 'dark' : 'light'
         } catch (erro) {
           document.documentElement.dataset.theme = 'light'
         }

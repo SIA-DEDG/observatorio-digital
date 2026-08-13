@@ -5,59 +5,40 @@ import { useSyncExternalStore } from 'react'
  * global (cacheEmMemoria em util/aggregationsV2.js) e evita envolver a árvore
  * inteira num provider só por causa de uma string.
  *
- * A preferência tem três estados; o tema aplicado tem dois. O script inline do
- * index.html já resolveu o primeiro paint, aqui só mantemos os dois em sincronia.
+ * São dois estados, não três: o tema é sempre escolha explícita e começa no
+ * claro. Sem "seguir o sistema", preferência e tema aplicado viraram a mesma
+ * coisa — daí um hook só. O script inline do index.html já resolveu o primeiro
+ * paint; aqui mantemos o atributo e os assinantes em sincronia.
  */
 const CHAVE = 'observatorio:tema'
-const PREFERENCIAS = ['system', 'light', 'dark']
+const TEMAS = ['light', 'dark']
+const PADRAO = 'light'
 
-const consultaEscuro = () =>
-    typeof window !== 'undefined' && window.matchMedia
-        ? window.matchMedia('(prefers-color-scheme: dark)')
-        : null
-
-function lerPreferencia() {
+function lerTema() {
     try {
-        const salva = localStorage.getItem(CHAVE)
-        return PREFERENCIAS.includes(salva) ? salva : 'system'
+        const salvo = localStorage.getItem(CHAVE)
+        // Cai no padrão também para quem tem 'system' gravado de antes
+        return TEMAS.includes(salvo) ? salvo : PADRAO
     } catch {
-        // localStorage lança em contextos de privacidade; cair no sistema
-        return 'system'
+        // localStorage lança em contextos de privacidade
+        return PADRAO
     }
 }
 
-const resolver = (preferencia) =>
-    preferencia === 'light' || preferencia === 'dark'
-        ? preferencia
-        : consultaEscuro()?.matches
-            ? 'dark'
-            : 'light'
-
-let preferencia = lerPreferencia()
-let tema = resolver(preferencia)
+let tema = lerTema()
 const ouvintes = new Set()
 
-function aplicar() {
-    const proximo = resolver(preferencia)
-    if (proximo === tema) return
-    tema = proximo
-    // O atributo é o que o CSS lê; color-scheme vem junto pelo seletor [data-theme]
-    document.documentElement.dataset.theme = tema
-    for (const ouvinte of ouvintes) ouvinte()
-}
-
-export function definirPreferencia(nova) {
-    if (!PREFERENCIAS.includes(nova) || nova === preferencia) return
-    preferencia = nova
+export function definirTema(novo) {
+    if (!TEMAS.includes(novo) || novo === tema) return
+    tema = novo
     try {
-        localStorage.setItem(CHAVE, nova)
+        localStorage.setItem(CHAVE, novo)
     } catch {
         // sem persistência, mas a sessão atual continua respeitando a escolha
     }
-    const temaAnterior = tema
-    aplicar()
-    // A preferência mudou mesmo que o tema resolvido não tenha (ex.: sistema já escuro)
-    if (tema === temaAnterior) for (const ouvinte of ouvintes) ouvinte()
+    // O atributo é o que o CSS lê; color-scheme vem junto pelo seletor [data-theme]
+    document.documentElement.dataset.theme = tema
+    for (const ouvinte of ouvintes) ouvinte()
 }
 
 function inscrever(ouvinte) {
@@ -65,12 +46,5 @@ function inscrever(ouvinte) {
     return () => ouvintes.delete(ouvinte)
 }
 
-// Só importa enquanto a preferência for "system"; aplicar() já checa isso
-consultaEscuro()?.addEventListener('change', aplicar)
-
-/** Tema efetivamente aplicado: 'light' ou 'dark'. */
-export const useTema = () => useSyncExternalStore(inscrever, () => tema, () => 'light')
-
-/** Preferência escolhida: 'system', 'light' ou 'dark'. */
-export const usePreferenciaTema = () =>
-    useSyncExternalStore(inscrever, () => preferencia, () => 'system')
+/** Tema aplicado: 'light' ou 'dark'. */
+export const useTema = () => useSyncExternalStore(inscrever, () => tema, () => PADRAO)
