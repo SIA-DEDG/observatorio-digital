@@ -57,26 +57,43 @@ const COLUNAS_PAIS = [
     { chave: 'kgImportado', label: 'Quant. importada (t)', formato: formatos.toneladas, total: true },
 ]
 
+/*
+ * As três colunas de % do Top 5 dividem o mesmo valor por bases diferentes, e só
+ * o resultado na tela não deixa isso claro. A conta vai embaixo do percentual:
+ * valor do município ÷ base da coluna × 100. A base de cada uma vem na linha
+ * (baseBrasil, baseDigital, baseMunicipio), montada em montarRankingMunicipiosV2.
+ */
+const percentualComConta = (chaveBase, formatarPercentual) => (valor, linha) => (
+    <span className="flex flex-col items-end gap-[2px]">
+        <span>{formatarPercentual(valor)}</span>
+        {valor != null && (
+            <span className="text-[11px] font-light text-texto-3">
+                {formatos.moedaCompacta(linha.valor)} ÷ {formatos.moedaCompacta(linha[chaveBase])} × 100
+            </span>
+        )}
+    </span>
+)
+
 const COLUNAS_MUNICIPIOS_EXPORTACAO = [
     { chave: 'posicao', label: '#', alinhamento: 'center' },
     { chave: 'municipio', label: 'Município', alinhamento: 'left' },
+    { chave: 'valor', label: 'Valor exportado (US$)', formato: formatos.moedaCompacta },
+    { chave: 'percentualBrasil', label: '% das exportações do Brasil', formato: percentualComConta('baseBrasil', formatos.percentualPreciso) },
+    { chave: 'percentualEconomiaDigital', label: '% das exportações digitais filtradas', formato: percentualComConta('baseDigital', formatos.percentual) },
+    { chave: 'percentualProdutosMunicipio', label: '% dos produtos digitais nas exportações do município', formato: percentualComConta('baseMunicipio', formatos.percentual) },
     { chave: 'produtoPrincipal', label: 'Produto digital mais exportado', alinhamento: 'center', formato: formatoProduto },
     { chave: 'grupoProdutoPrincipal', label: 'Grupo temático', alinhamento: 'center' },
-    { chave: 'valor', label: 'Valor exportado (US$)', formato: formatos.moedaCompacta },
-    { chave: 'percentualBrasil', label: '% das exportações do Brasil', formato: formatos.percentualPreciso },
-    { chave: 'percentualEconomiaDigital', label: '% das exportações digitais filtradas', formato: formatos.percentual },
-    { chave: 'percentualProdutosMunicipio', label: '% dos produtos digitais nas exportações do município', formato: formatos.percentual },
 ]
 
 const COLUNAS_MUNICIPIOS_IMPORTACAO = [
     { chave: 'posicao', label: '#', alinhamento: 'center' },
     { chave: 'municipio', label: 'Município', alinhamento: 'left' },
+    { chave: 'valor', label: 'Valor importado (US$)', formato: formatos.moedaCompacta },
+    { chave: 'percentualBrasil', label: '% das importações do Brasil', formato: percentualComConta('baseBrasil', formatos.percentualPreciso) },
+    { chave: 'percentualEconomiaDigital', label: '% das importações digitais filtradas', formato: percentualComConta('baseDigital', formatos.percentual) },
+    { chave: 'percentualProdutosMunicipio', label: '% dos produtos digitais nas importações do município', formato: percentualComConta('baseMunicipio', formatos.percentual) },
     { chave: 'produtoPrincipal', label: 'Produto digital mais importado', alinhamento: 'center', formato: formatoProduto },
     { chave: 'grupoProdutoPrincipal', label: 'Grupo temático', alinhamento: 'center' },
-    { chave: 'valor', label: 'Valor importado (US$)', formato: formatos.moedaCompacta },
-    { chave: 'percentualBrasil', label: '% das importações do Brasil', formato: formatos.percentualPreciso },
-    { chave: 'percentualEconomiaDigital', label: '% das importações digitais filtradas', formato: formatos.percentual },
-    { chave: 'percentualProdutosMunicipio', label: '% dos produtos digitais nas importações do município', formato: formatos.percentual },
 ]
 const ROTULO_FLUXO = { Exportacao: 'Exportação', Importacao: 'Importação' }
 

@@ -418,6 +418,7 @@ export function montarRankingMunicipiosV2(
         return total
     }, { exportado: 0, importado: 0 })
 
+    // (dividendo / divisor) * 100 = o % exibido; divisor zerado vira null (célula vazia), não 0%
     const participacao = (parte, todo) => (todo > 0 ? (parte / todo) * 100 : null)
     const montarFluxo = (fluxo, rotulo) => [...recortePorMunicipio.entries()]
         .map(([municipio, valores]) => {
@@ -433,15 +434,28 @@ export function montarRankingMunicipiosV2(
         .filter((linha) => linha.valor > 0)
         .sort((a, b) => b.valor - a.valor)
         .slice(0, limite)
-        .map((linha, indice) => ({
-            id: `${fluxo}:${linha.municipio}`,
-            posicao: indice + 1,
-            fluxo: rotulo,
-            ...linha,
-            percentualBrasil: participacao(linha.valor, totalBrasil[fluxo]),
-            percentualEconomiaDigital: participacao(linha.valor, totalDigital[fluxo]),
-            percentualProdutosMunicipio: participacao(linha.valor, totalPorMunicipio.get(linha.municipio)?.[fluxo] ?? 0),
-        }))
+        .map((linha, indice) => {
+            /*
+             * O dividendo é sempre o mesmo — linha.valor, o que o município moveu
+             * no recorte. O que muda de coluna para coluna é o divisor. As três
+             * bases viajam na linha porque a tabela mostra a conta ao lado do %.
+             */
+            const baseBrasil = totalBrasil[fluxo] // Brasil inteiro no período, sem filtro de produto
+            const baseDigital = totalDigital[fluxo] // soma do recorte digital em todos os municípios do escopo
+            const baseMunicipio = totalPorMunicipio.get(linha.municipio)?.[fluxo] ?? 0 // todo o comércio do próprio município
+            return {
+                id: `${fluxo}:${linha.municipio}`,
+                posicao: indice + 1,
+                fluxo: rotulo,
+                ...linha,
+                baseBrasil,
+                baseDigital,
+                baseMunicipio,
+                percentualBrasil: participacao(linha.valor, baseBrasil),
+                percentualEconomiaDigital: participacao(linha.valor, baseDigital),
+                percentualProdutosMunicipio: participacao(linha.valor, baseMunicipio),
+            }
+        })
 
     return [
         ...montarFluxo('exportado', 'Exportação'),
