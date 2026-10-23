@@ -1,4 +1,4 @@
-import { Funnel, Calendar, RefreshCw } from 'lucide-react'
+import { Calendar, RefreshCw } from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import LevelToggle from '../components/LevelToggle'
 import FilterSidebar from '../components/FilterSidebar'
@@ -11,7 +11,6 @@ import ChartLine from '../components/LineChart'
 import Carregando from '../components/Carregando'
 import BalancaComercial from '../components/BalancaComercial'
 import BarraFiltrosAtivos from '../components/BarraFiltrosAtivos'
-import BotaoTema from '../components/BotaoTema'
 import SecaoDownload from '../components/SecaoDownload'
 import TopPaises from '../components/TopPaises'
 import { formatos } from '../util/formats'
@@ -227,16 +226,6 @@ function Dashboard() {
 
     return (
         <>
-            <header className="h-[40px] bg-cabecalho-fundo flex flex-row items-center justify-between gap-3 p-5">
-                <div className="min-w-0">
-                    <div className="h-[20px] flex items-center gap-2 px-4 h-full rounded-md bg-cabecalho-pilula hover:bg-cabecalho-pilula/80 transition-colors cursor-pointer">
-                        <Funnel className="shrink-0 text-white" size={14} />
-                        <p className="truncate text-white text-sm">Exportação e Importação de mercadorias e bens de TICs do Piauí</p>
-                    </div>
-                </div>
-                <BotaoTema />
-            </header>
-
             {erroCarga && (
                 <div className="mx-4 mt-4 rounded-lg border border-estado-erro bg-estado-erro-suave px-4 py-3 text-[13px] text-estado-erro lg:mx-7">
                     Falha ao carregar dados do banco: {erroCarga}
